@@ -1,0 +1,81 @@
+from baseline.client import BaselineClient
+from flwr.common import (
+    Code,
+    EvaluateIns,
+    EvaluateRes,
+    FitIns,
+    FitRes,
+    Status,
+    ndarrays_to_parameters,
+    parameters_to_ndarrays,
+)
+
+from utils.utils1 import get_parameters, set_parameters, train, test
+
+
+class BiCClient(BaselineClient):
+    def __init__(self, partition_id, net, trainloader, valloader, epochs, client_lr, bic_params):
+        super().__init__(partition_id, net, trainloader, valloader, epochs, client_lr)
+        self.bic_params = bic_params
+
+    def fit(self, ins: FitIns) -> FitRes:
+        print(f"[Client {self.partition_id}] fit, config: {ins.config}")
+
+        parameters_original = ins.parameters
+        ndarrays_original = parameters_to_ndarrays(parameters_original)
+
+        ndarrays_original.append(self.bic_prams)
+
+        set_parameters(self.net, ndarrays_original)
+
+        train(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
+
+        #lay tham so
+        modelr_ndarrays = get_parameters(self.net)
+        # self.bic_prams = modelr_ndarrays[-1]
+        # torch.save(self.bic_prams, bic_path)
+        # print(f"[Client {self.partition_id}] Saved BiC Layer to {bic_path}")
+        model_ndarrays = modelr_ndarrays[:-1]
+
+        parameters_updated = ndarrays_to_parameters(model_ndarrays)
+
+        status = Status(code=Code.OK, message="Success")
+        return FitRes(
+            status=status,
+            parameters=parameters_updated,
+            num_examples=len(self.trainloader),
+            metrics = {},
+        )
+    
+    def evaluate(self, ins: EvaluateIns) -> EvaluateRes:
+        print(f"[Client {self.partition_id}] evaluate, config: {ins.config}")
+        #print(f"[DEBUG] ins.parameters: {ins.parameters}")
+        # Deserialize parameters to NumPy ndarray's
+        parameters_original = ins.parameters
+        ndarrays_original = parameters_to_ndarrays(parameters_original)
+
+
+        # bic_path = f"bic_layer_client_{self.partition_id}.pt"
+        # if self.bic_prams is None and os.path.exists(bic_path):
+        #   self.bic_prams = torch.load(bic_path)
+        # print(f"[Client {self.partition_id}] Load BiC Layer to {bic_path}")
+
+        # if self.bic_prams is not None:
+        #   #set_parameters(self.net, self.bic_prams)
+        #   ndarrays_original.append(self.bic_prams)
+
+        # else:
+        #   print("[WARNING] self.bic_prams is None! Skipping update for BiC Layer.")
+        #   print(self.bic_prams)
+        set_parameters(self.net, ndarrays_original)
+        loss, accuracy = test(self.net, self.valloader)
+
+
+        # Build and return response
+        status = Status(code=Code.OK, message="Success")
+        return EvaluateRes(
+            status=status,
+            loss=float(loss),
+            num_examples=len(self.valloader),
+            metrics={"accuracy": float(accuracy), "cid":self.partition_id},
+        )
