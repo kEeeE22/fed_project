@@ -33,7 +33,7 @@ def fed_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-mt', '--method', type=str, required=True, help='Method name')
-    parser.add_argument('-rd', '--num-rounds', type=int, required=True, help='Number of rounds')
+    parser.add_argument('-rd', '--num-round', type=int, required=True, help='Number of rounds')
     parser.add_argument('-ds', '--dataset', type=str, required=True, help='Dataset name')
     parser.add_argument('-md', '--sys-model', type=str, required=True, help='Model name')
     parser.add_argument('-is', '--sys-i-seed', type=int, required=True, default=42, help='Seed used in experiment')
@@ -133,7 +133,7 @@ def main():
 
         def server_fn(context: Context) -> ServerAppComponents:
         # Configure the server for num_rounds rounds of training
-            config = ServerConfig(num_rounds=args.num_rounds)
+            config = ServerConfig(num_rounds=args.num_round)
             strategy = FedBic(
                 fraction_fit=fraction_fit,
                 fraction_evaluate=fraction_evaluate,
@@ -171,7 +171,7 @@ def main():
 
         def server_fn(context: Context) -> ServerAppComponents:
         # Configure the server for num_rounds rounds of training
-            config = ServerConfig(num_rounds=args.num_rounds)
+            config = ServerConfig(num_rounds=args.num_round)
             strategy = FedAvg(
                 fraction_fit=fraction_fit,
                 fraction_evaluate=fraction_evaluate,
@@ -209,7 +209,7 @@ def main():
 
         def server_fn(context: Context) -> ServerAppComponents:
         # Configure the server for num_rounds rounds of training
-            config = ServerConfig(num_rounds=args.num_rounds)
+            config = ServerConfig(num_rounds=args.num_round)
             strategy = FedBN(
                 fraction_fit=fraction_fit,
                 fraction_evaluate=fraction_evaluate,
@@ -247,7 +247,7 @@ def main():
 
         def server_fn(context: Context) -> ServerAppComponents:
         # Configure the server for num_rounds rounds of training
-            config = ServerConfig(num_rounds=args.num_rounds)
+            config = ServerConfig(num_rounds=args.num_round)
             strategy = FedProx(
                 fraction_fit=fraction_fit,
                 fraction_evaluate=fraction_evaluate,
