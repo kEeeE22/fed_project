@@ -32,7 +32,7 @@ def load_data(dataset: str):
         ])
 
         trainset = CIFAR10("dataset/cifar10", train=True, download=True, transform=train_transform)
-        testset = CIFAR10("data/cifar10", train=False, download=True, transform=test_transform)
+        testset = CIFAR10("dataset/cifar10", train=False, download=True, transform=test_transform)
 
     elif dataset == 'mnist':
         transform = transforms.Compose([
@@ -40,8 +40,8 @@ def load_data(dataset: str):
             transform.Normalize((0.5), (0.5))
         ])
 
-        trainset = MNIST('data', split='balanced', train=True, download=True, transform=transform)
-        testset = MNIST('data', split='balanced', train=False, download=True, transform=transform)
+        trainset = MNIST('dataset/mnist', split='balanced', train=True, download=True, transform=transform)
+        testset = MNIST('dataset/mnist', split='balanced', train=False, download=True, transform=transform)
 
     elif dataset == 'ETC':
         pass
