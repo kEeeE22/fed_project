@@ -1,3 +1,4 @@
+import torch
 from flwr.server.strategy import Strategy
 from typing import Callable, List, Tuple, Optional, Union, Dict
 from flwr.server.client_manager import ClientManager
@@ -17,7 +18,9 @@ from flwr.common import (
     Metrics,
 )
 from utils.utils1 import set_parameters, get_parameters, test
-from main import client_file, server_file, avg_file, DEVICE
+#from main import client_file, server_file, avg_file
+
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 class FedAvg(Strategy):
@@ -32,7 +35,10 @@ class FedAvg(Strategy):
             Callable[[List[Tuple[int, Metrics]]], Metrics]
         ] = None,
         testloader = None,
-        net = None
+        net = None,
+        server_file = None,
+        client_file = None,
+        avg_file = None,
     ) -> None:
         super().__init__()
         self.fraction_fit = fraction_fit
@@ -43,6 +49,9 @@ class FedAvg(Strategy):
         self.evaluate_metrics_aggregation_fn = evaluate_metrics_aggregation_fn
         self.testloader = testloader
         self.net = net
+        self.server_file = server_file
+        self.client_file = client_file
+        self.avg_file = avg_file
     def __repr__(self) -> str:
         return "FedAvg"
 
@@ -126,9 +135,9 @@ class FedAvg(Strategy):
           print(f"  Client {client_id}: {acc:.2f}%")
 
         #client_file = f"client_{self.__repr__()}_{client_epochs}_{client_lr}_{alpha}.csv"
-        file_exists = os.path.isfile(client_file)
+        file_exists = os.path.isfile(self.client_file)
 
-        with open(client_file, mode="a", newline="") as f:
+        with open(self.client_file, mode="a", newline="") as f:
           writer = csv.writer(f)
 
           if not file_exists:
@@ -145,10 +154,10 @@ class FedAvg(Strategy):
 
             # Tên file CSV
             #avg_file = f"avg_{self.__repr__()}_{client_epochs}_{client_lr}_{alpha}.csv"
-            file_exists = os.path.isfile(avg_file)
+            file_exists = os.path.isfile(self.avg_file)
 
             # Lưu kết quả vào file CSV
-            with open(avg_file, mode="a", newline="") as f:
+            with open(self.avg_file, mode="a", newline="") as f:
                 writer = csv.writer(f)
 
                 # Ghi header nếu file chưa tồn tại
@@ -174,10 +183,10 @@ class FedAvg(Strategy):
 
         # Tên file CSV
         #server_file = f"server_{self.__repr__()}_{client_epochs}_{client_lr}_{alpha}.csv"
-        file_exists = os.path.isfile(server_file)
+        file_exists = os.path.isfile(self.server_file)
 
         # Lưu kết quả vào file CSV
-        with open(server_file, mode="a", newline="") as f:
+        with open(self.server_file, mode="a", newline="") as f:
           writer = csv.writer(f)
 
           # Ghi header nếu file chưa tồn tại

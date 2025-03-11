@@ -2,6 +2,7 @@ import torch
 import argparse
 import random
 import numpy as np
+import os
 from torch.utils.data import DataLoader, Subset
 
 from flwr.client import Client, ClientApp
@@ -71,11 +72,12 @@ def main():
 
     train_set, test_set = load_data(args.dataset)
     ids, labels = dirichlet_data(train_set, args.n_client, args.num_iid, args.alpha, args.beta)
-
+    os.makedirs("result", exist_ok=True)
     # file
-    avg_file = f"avg_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv"
-    client_file = f'client_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
-    server_file = f'server_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
+
+    avg_file = f"result/avg_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv"
+    client_file = f'result/client_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
+    server_file = f'result/server_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
 
     trainloaders = []
     valloaders = []
@@ -134,6 +136,9 @@ def main():
                 evaluate_metrics_aggregation_fn=weighted_average,
                 testloader = server_test,
                 net = model_dict[args.sys_model](),
+                server_file = server_file,
+                client_file = client_file,
+                avg_file = avg_file
             )
             return ServerAppComponents(config=config, strategy = strategy)
 
@@ -169,6 +174,9 @@ def main():
                 evaluate_metrics_aggregation_fn=weighted_average,
                 testloader = server_test,
                 net = model_dict[args.sys_model](),
+                server_file = server_file,
+                client_file = client_file,
+                avg_file = avg_file
             )
             return ServerAppComponents(config=config, strategy = strategy)
 
@@ -204,6 +212,9 @@ def main():
                 evaluate_metrics_aggregation_fn=weighted_average,
                 testloader = server_test,
                 net = model_dict[args.sys_model](),
+                server_file = server_file,
+                client_file = client_file,
+                avg_file = avg_file
             )
             return ServerAppComponents(config=config, strategy = strategy)
 
@@ -239,6 +250,9 @@ def main():
                 evaluate_metrics_aggregation_fn=weighted_average,
                 testloader = server_test,
                 net = model_dict[args.sys_model](),
+                server_file = server_file,
+                client_file = client_file,
+                avg_file = avg_file
             )
             return ServerAppComponents(config=config, strategy = strategy)
 

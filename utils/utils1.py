@@ -6,7 +6,7 @@ import pandas as pd
 from sklearn.metrics import classification_report
 import copy
 
-from main import DEVICE
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 class EarlyStopping:
     def __init__(self, patience=5, min_delta=0, verbose=False):
 
