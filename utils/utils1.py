@@ -71,8 +71,8 @@ def train(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
     net.train()
     for epoch in range(epochs):
         total_loss, correct, total_samples = 0.0, 0, 0
-        for batch in trainloader:
-          images, labels = batch["img"], batch["label"]
+        for images, labels in trainloader:
+          #images, labels = batch["img"], batch["label"]
           images, labels = images.to(DEVICE), labels.to(DEVICE)
 
           optimizer.zero_grad()
@@ -113,8 +113,8 @@ def test(net,testloader):
     correct, total, loss = 0, 0, 0.0
     net.eval()
     with torch.no_grad():
-        for batch in testloader:
-            images, labels = batch["img"], batch["label"]
+        for images, labels in testloader:
+            #images, labels = batch["img"], batch["label"]
             images, labels = images.to(DEVICE), labels.to(DEVICE)
             outputs = net(images)
             loss += criterion(outputs, labels).item()
@@ -135,8 +135,8 @@ def test_2_server(net, testloader):
 
     net.eval()
     with torch.no_grad():
-        for batch in testloader:
-            images, labels = batch["img"], batch["label"]
+        for images, labels in testloader:
+            #images, labels = batch["img"], batch["label"]
             images, labels = images.to(DEVICE), labels.to(DEVICE)
             outputs = net(images)
             loss += criterion(outputs, labels).item()

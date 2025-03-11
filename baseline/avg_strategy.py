@@ -3,7 +3,7 @@ from flwr.server.strategy import Strategy
 from typing import Callable, List, Tuple, Optional, Union, Dict
 from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
-from flwr.server.strategy.aggragate import aggregate, weighted_loss_avg
+from flwr.server.strategy.aggregate import aggregate, weighted_loss_avg
 import os
 import csv
 from flwr.common import (
@@ -17,7 +17,7 @@ from flwr.common import (
     parameters_to_ndarrays,
     Metrics,
 )
-from utils.utils1 import set_parameters, get_parameters, test
+from utils.utils1 import set_parameters, get_parameters, test, test_2_server
 #from main import client_file, server_file, avg_file
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -179,7 +179,7 @@ class FedAvg(Strategy):
         array_param = parameters_to_ndarrays(parameters)
         net = self.net.to(DEVICE)
         set_parameters(net, array_param)
-        loss, accuracy = test(net, self.testloader)
+        loss, accuracy = test_2_server(net, self.testloader)
 
         # Tên file CSV
         #server_file = f"server_{self.__repr__()}_{client_epochs}_{client_lr}_{alpha}.csv"

@@ -16,7 +16,7 @@ torch.manual_seed(seed_value)
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(seed_value)
 
-
+#define ten dataset vt thuong :V
 def load_data(dataset: str):
     if dataset == "cifar10":
         train_transform = transforms.Compose([

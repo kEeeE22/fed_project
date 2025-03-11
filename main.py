@@ -60,7 +60,8 @@ def main():
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training on {DEVICE}")
 
-    dataset_list = ['MNIST', 'CIFAR10', 'ETC']
+    #dataset viet thuong het  :V
+    dataset_list = ['mnist', 'cifar10', 'etc']
     assert args.dataset in dataset_list, 'Choose a dataset that exist.'
 
     model_dict = {'CNN1': CNN1, 'ETC_CNN': ETC_CNN}
@@ -72,12 +73,12 @@ def main():
 
     train_set, test_set = load_data(args.dataset)
     ids, labels = dirichlet_data(train_set, args.n_client, args.num_iid, args.alpha, args.beta)
-    os.makedirs("result", exist_ok=True)
+    os.makedirs("results", exist_ok=True)
     # file
 
-    avg_file = f"result/avg_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv"
-    client_file = f'result/client_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
-    server_file = f'result/server_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
+    avg_file = f"results/avg_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv"
+    client_file = f'results/client_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
+    server_file = f'results/server_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
 
     trainloaders = []
     valloaders = []
@@ -115,10 +116,11 @@ def main():
             trainloader = trainloaders[partition_id]
             valloader = valloaders[partition_id]
             epochs = args.client_epochs
+            client_lr = args.client_lr
             #epochs = random.randint(1,5)
             #epochs = client_epochs.get(f"client_{partition_id}", 1)
             bic_params_client = bic_params[partition_id]
-            return BiCClient(partition_id, net, trainloader, valloader, epochs, bic_params_client).to_client()
+            return BiCClient(partition_id, net, trainloader, valloader, epochs,client_lr, bic_params_client).to_client()
 
 
         # Create the ClientApp
@@ -153,10 +155,10 @@ def main():
             trainloader = trainloaders[partition_id]
             valloader = valloaders[partition_id]
             epochs = args.client_epochs
+            client_lr = args.client_lr
             #epochs = random.randint(1,5)
             #epochs = client_epochs.get(f"client_{partition_id}", 1)
-            bic_params_client = bic_params[partition_id]
-            return BaselineClient(partition_id, net, trainloader, valloader, epochs, bic_params_client).to_client()
+            return BaselineClient(partition_id, net, trainloader, valloader, epochs, client_lr).to_client()
 
 
         # Create the ClientApp
@@ -191,10 +193,10 @@ def main():
             trainloader = trainloaders[partition_id]
             valloader = valloaders[partition_id]
             epochs = args.client_epochs
+            client_lr = args.client_lr
             #epochs = random.randint(1,5)
             #epochs = client_epochs.get(f"client_{partition_id}", 1)
-            bic_params_client = bic_params[partition_id]
-            return BNClient(partition_id, net, trainloader, valloader, epochs, bic_params_client).to_client()
+            return BNClient(partition_id, net, trainloader, valloader, epochs, client_lr).to_client()
 
 
         # Create the ClientApp
@@ -229,10 +231,10 @@ def main():
             trainloader = trainloaders[partition_id]
             valloader = valloaders[partition_id]
             epochs = args.client_epochs
+            client_lr = args.client_lr
             #epochs = random.randint(1,5)
             #epochs = client_epochs.get(f"client_{partition_id}", 1)
-            bic_params_client = bic_params[partition_id]
-            return ProxClient(partition_id, net, trainloader, valloader, epochs, bic_params_client).to_client()
+            return ProxClient(partition_id, net, trainloader, valloader, epochs, client_lr).to_client()
 
 
         # Create the ClientApp
@@ -252,7 +254,8 @@ def main():
                 net = model_dict[args.sys_model](),
                 server_file = server_file,
                 client_file = client_file,
-                avg_file = avg_file
+                avg_file = avg_file,
+                proximal_mu = 0.9
             )
             return ServerAppComponents(config=config, strategy = strategy)
 
@@ -261,7 +264,7 @@ def main():
         server = ServerApp(server_fn=server_fn)
     backend_config = {"client_resources": None}
     if DEVICE.type == "cuda":
-        backend_config = {"client_resources": {"num_gpus": 1, "num_cpus": 1}}
+        backend_config = {"client_resources": {"num_gpus": 0, "num_cpus": 4}}
 
     # Run simulation
     run_simulation(
