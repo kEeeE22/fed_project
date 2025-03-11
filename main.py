@@ -33,7 +33,7 @@ def fed_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-mt', '--method', type=str, required=True, help='Method name')
-    parser.add_argument('-rd', '--num-round', type=int, required=True, help='Number of rounds')
+    parser.add_argument('-rd', '--num-rounds', type=int, required=True, help='Number of rounds')
     parser.add_argument('-ds', '--dataset', type=str, required=True, help='Dataset name')
     parser.add_argument('-md', '--sys-model', type=str, required=True, help='Model name')
     parser.add_argument('-is', '--sys-i-seed', type=int, required=True, default=42, help='Seed used in experiment')
@@ -59,6 +59,11 @@ def main():
     args = fed_args()
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Training on {DEVICE}")
+    fraction_fit=0.3
+    fraction_evaluate=1.0
+    min_fit_clients=5
+    min_evaluate_clients=5
+    min_available_clients=5
 
     #dataset viet thuong het  :V
     dataset_list = ['mnist', 'cifar10', 'etc']
@@ -128,13 +133,13 @@ def main():
 
         def server_fn(context: Context) -> ServerAppComponents:
         # Configure the server for num_rounds rounds of training
-            config = ServerConfig(num_rounds=20)
+            config = ServerConfig(num_rounds=args.num_rounds)
             strategy = FedBic(
-                fraction_fit=1.0,
-                fraction_evaluate=1.0,
-                min_fit_clients=10,
-                min_evaluate_clients=10,
-                min_available_clients=10,
+                fraction_fit=fraction_fit,
+                fraction_evaluate=fraction_evaluate,
+                min_fit_clients=min_fit_clients,
+                min_evaluate_clients=min_evaluate_clients,
+                min_available_clients=min_available_clients,
                 evaluate_metrics_aggregation_fn=weighted_average,
                 testloader = server_test,
                 net = model_dict[args.sys_model](),
@@ -166,13 +171,13 @@ def main():
 
         def server_fn(context: Context) -> ServerAppComponents:
         # Configure the server for num_rounds rounds of training
-            config = ServerConfig(num_rounds=20)
+            config = ServerConfig(num_rounds=args.num_rounds)
             strategy = FedAvg(
-                fraction_fit=1.0,
-                fraction_evaluate=1.0,
-                min_fit_clients=10,
-                min_evaluate_clients=10,
-                min_available_clients=10,
+                fraction_fit=fraction_fit,
+                fraction_evaluate=fraction_evaluate,
+                min_fit_clients=min_fit_clients,
+                min_evaluate_clients=min_evaluate_clients,
+                min_available_clients=min_available_clients,
                 evaluate_metrics_aggregation_fn=weighted_average,
                 testloader = server_test,
                 net = model_dict[args.sys_model](),
@@ -204,13 +209,13 @@ def main():
 
         def server_fn(context: Context) -> ServerAppComponents:
         # Configure the server for num_rounds rounds of training
-            config = ServerConfig(num_rounds=20)
+            config = ServerConfig(num_rounds=args.num_rounds)
             strategy = FedBN(
-                fraction_fit=1.0,
-                fraction_evaluate=1.0,
-                min_fit_clients=10,
-                min_evaluate_clients=10,
-                min_available_clients=10,
+                fraction_fit=fraction_fit,
+                fraction_evaluate=fraction_evaluate,
+                min_fit_clients=min_fit_clients,
+                min_evaluate_clients=min_evaluate_clients,
+                min_available_clients=min_available_clients,
                 evaluate_metrics_aggregation_fn=weighted_average,
                 testloader = server_test,
                 net = model_dict[args.sys_model](),
@@ -242,13 +247,13 @@ def main():
 
         def server_fn(context: Context) -> ServerAppComponents:
         # Configure the server for num_rounds rounds of training
-            config = ServerConfig(num_rounds=20)
+            config = ServerConfig(num_rounds=args.num_rounds)
             strategy = FedProx(
-                fraction_fit=1.0,
-                fraction_evaluate=1.0,
-                min_fit_clients=10,
-                min_evaluate_clients=10,
-                min_available_clients=10,
+                fraction_fit=fraction_fit,
+                fraction_evaluate=fraction_evaluate,
+                min_fit_clients=min_fit_clients,
+                min_evaluate_clients=min_evaluate_clients,
+                min_available_clients=min_available_clients,
                 evaluate_metrics_aggregation_fn=weighted_average,
                 testloader = server_test,
                 net = model_dict[args.sys_model](),
