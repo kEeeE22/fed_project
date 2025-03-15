@@ -14,9 +14,9 @@ from utils.utils1 import get_parameters, set_parameters, train, test
 
 
 class BiCClient(BaselineClient):
-    def __init__(self, partition_id, net, trainloader, valloader, epochs, client_lr, bic_params):
+    def __init__(self, partition_id, net, trainloader, valloader, epochs, client_lr, bic_params_client):
         super().__init__(partition_id, net, trainloader, valloader, epochs, client_lr)
-        self.bic_params = bic_params
+        self.bic_params_client = bic_params_client
 
     def fit(self, ins: FitIns) -> FitRes:
         print(f"[Client {self.partition_id}] fit, config: {ins.config}")
@@ -24,7 +24,7 @@ class BiCClient(BaselineClient):
         parameters_original = ins.parameters
         ndarrays_original = parameters_to_ndarrays(parameters_original)
 
-        ndarrays_original.append(self.bic_prams)
+        ndarrays_original.append(self.bic_params_client)
 
         set_parameters(self.net, ndarrays_original)
 
@@ -43,7 +43,7 @@ class BiCClient(BaselineClient):
         return FitRes(
             status=status,
             parameters=parameters_updated,
-            num_examples=len(self.trainloader),
+            num_examples=len(self.trainloader.dataset),
             metrics = {},
         )
     
@@ -76,6 +76,6 @@ class BiCClient(BaselineClient):
         return EvaluateRes(
             status=status,
             loss=float(loss),
-            num_examples=len(self.valloader),
+            num_examples=len(self.valloader.dataset),
             metrics={"accuracy": float(accuracy), "cid":self.partition_id},
         )

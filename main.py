@@ -3,16 +3,19 @@ import argparse
 import random
 import numpy as np
 import os
-from torch.utils.data import DataLoader, Subset
+import time
+from torch.utils.data import DataLoader, Subset, TensorDataset
 
 from flwr.client import Client, ClientApp
 from flwr.common import Context
 from flwr.server import ServerApp, ServerConfig, ServerAppComponents
 from flwr.simulation import run_simulation
 
+from sklearn.model_selection import train_test_split 
+
 from utils.utils1 import train, get_parameters
 from utils.load_data import load_data, dirichlet_data, shard_data
-from utils.model import CNN1, ETC_CNN
+from utils.model import CNN1, ETC_CNN, ResNet50
 
 from fedbic.bic_client import BiCClient
 from fedbic.bic_strategy import FedBic
@@ -26,12 +29,23 @@ from baseline.BN_strategy import FedBN
 from baseline.prox_client import ProxClient
 from baseline.prox_strategy import FedProx
 
+def setup_logger():
+    os.makedirs("results", exist_ok=True)
+    return open("results/training_log.txt", "a")
 
+log_file = setup_logger()
+
+def log_time(stage, start_time):
+    elapsed_time = time.time() - start_time
+    log_message = f"[LOG] {stage} completed in {elapsed_time:.2f} seconds."
+    print(log_message)
+    log_file.write(log_message + "\n")
+    log_file.flush()
 
 
 def fed_args():
     parser = argparse.ArgumentParser()
-
+    
     parser.add_argument('-mt', '--method', type=str, required=True, help='Method name')
     parser.add_argument('-rd', '--num-round', type=int, required=True, help='Number of rounds')
     parser.add_argument('-ds', '--dataset', type=str, required=True, help='Dataset name')
@@ -41,25 +55,56 @@ def fed_args():
     #client
     parser.add_argument('-nc', '--n-client', type=int, required=True, help='Number of clients')
     parser.add_argument('-eps', '--client-epochs', type=int, required=True,default=1, help='Client epochs for federated learning')
-    parser.add_argument('-lr', '--client-lr', required=True, help='Client learning rate')
+    parser.add_argument('-lr', '--client-lr', required=True, type=float, help='Client learning rate')
 
-    #phase 1
-    parser.add_argument('-p1-eps', '--phase-1-client-epochs', type=int, required=True, help='BiC training epochs')
-    parser.add_argument('-p1-lr', '--phase-1-client-lr',type=float, required=True, help='BiC training learning rate')
+    #phase 1 // chi can neu method la FedBic
+    parser.add_argument('-p1-eps', '--phase-1-client-epochs', type=int, help='BiC training epochs')
+    parser.add_argument('-p1-lr', '--phase-1-client-lr',type=float, help='BiC training learning rate')
+
+    #mu cang cao cang khac fedavg
+    parser.add_argument('-mu', '--proximal-mu', type=float, help='proximal mu for fedprox')
 
     #dirichlet
-    parser.add_argument('-niid', '--num-iid',type=int, required=True, help='Number of iid clients')
-    parser.add_argument('-alpha', '--alpha',type=float, required=True, help='Dirichlet parameter for iids')
-    parser.add_argument('-beta', '--beta',type=float, required=True, help='Dirichlet parameter for non-iids')
+    parser.add_argument('-niid', '--num-iid',type=int, help='Number of iid clients')
+    parser.add_argument('-alpha', '--alpha',type=float, help='Dirichlet parameter for iids')
+    parser.add_argument('-beta', '--beta',type=float, help='Dirichlet parameter for non-iids')
 
+    #shard
+    parser.add_argument('-ns', '--num-shard', type=int, help='Number of shard')
     args = parser.parse_args()
+
+    if args.method.lower() == "fedbic":
+        if args.phase_1_client_epochs is None or args.phase_1_client_lr is None:
+            parser.error("Arguments -p1-eps and -p1-lr are required when method is 'fedbic'")
+    if args.method.lower() == 'fedprox':
+        if args.proximal_mu is None:
+            parser.error("Arguments -mu is required when method is 'fedprox' ")
+
+    #kiem tra xem dung dirichlet hay shard de chia du lieu
+    using_etc = args.dataset == 'etc'
+    using_dirichlet = args.alpha is not None and args.beta is not None and args.num_iid is not None
+    using_shard = args.num_shard is not None
+    if not using_etc and not (using_dirichlet or using_shard):
+        parser.error("You must specify either Dirichlet parameters (-alpha, -beta, -niid) or -shard for data partitioning, but not both.")
+
+    # Không được chọn cả hai nếu dataset không phải 'etc'
+    if not using_etc and using_dirichlet and using_shard:
+        parser.error("You cannot specify both Dirichlet (-alpha, -beta, -niid) and Shard (-shard) methods. Choose one.")
     return args
 
 def main():
+    total_start_time = time.time()
     args = fed_args()
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"Training on {DEVICE}")
-    fraction_fit=0.3
+    log_message = f"Training on {DEVICE}"
+    print(log_message)
+    log_file.write(log_message + "\n")
+    
+    start_time = time.time()
+    train_set, test_set = load_data(args.dataset)
+    log_time("Data loading", start_time)
+
+    fraction_fit=1.0
     fraction_evaluate=1.0
     min_fit_clients=5
     min_evaluate_clients=5
@@ -69,38 +114,75 @@ def main():
     dataset_list = ['mnist', 'cifar10', 'etc']
     assert args.dataset in dataset_list, 'Choose a dataset that exist.'
 
-    model_dict = {'CNN1': CNN1, 'ETC_CNN': ETC_CNN}
+    model_dict = {'CNN1': CNN1, 'ETC_CNN': ETC_CNN, 'RESNET50': ResNet50}
     assert args.sys_model in model_dict, 'Choose a model that exist'
 
     random.seed(args.sys_i_seed)
     torch.manual_seed(args.sys_i_seed)
     np.random.seed(args.sys_i_seed)
 
-    train_set, test_set = load_data(args.dataset)
-    ids, labels = dirichlet_data(train_set, args.n_client, args.num_iid, args.alpha, args.beta)
+    start_time = time.time()
+    if args.dataset == "etc":
+        ids, labels = None, None  # Không chia dữ liệu nếu dataset là "etc"
+    elif args.alpha is not None and args.beta is not None and args.num_iid is not None:
+        ids, labels = dirichlet_data(train_set, args.n_client, args.num_iid, args.alpha, args.beta)
+    elif args.num_shard is not None:
+        ids, labels = shard_data(train_set, args.n_client, args.num_shard)
+    log_time("Data partitioning", start_time)
+
     os.makedirs("results", exist_ok=True)
     # file
-
     avg_file = f"results/avg_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv"
     client_file = f'results/client_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
     server_file = f'results/server_{args.method}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
 
+    start_time = time.time()
     trainloaders = []
     valloaders = []
+    if args.dataset == 'etc':
+        for i in range(1, 7):
+            data = train_set[f'client{i}']
+            x, y = zip(*data)  
+            
+            x = torch.stack(x).float()  
+            y = torch.tensor(y).long() 
 
-    for i in range(args.n_client):
-        num_samples = len(ids[i])
-        num_val = int(0.2 * num_samples)
-        num_train = num_samples - num_val
+            # Chia train/test
+            x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
 
-        train_indices = ids[i][:num_train]
-        val_indices = ids[i][num_train:]
+            x_train = x_train.unsqueeze(1)  
+            x_val = x_val.unsqueeze(1)
 
-        trainloaders.append(DataLoader(Subset(train_set, train_indices), batch_size=64, shuffle=True))
-        valloaders.append(DataLoader(Subset(train_set, val_indices), batch_size=64, shuffle=False))
+            train = TensorDataset(x_train, y_train)
+            val = TensorDataset(x_val, y_val)
 
-    server_test = DataLoader(test_set, batch_size=64, shuffle=False)
+            trainloaders.append(DataLoader(train, batch_size=64, shuffle=True))
+            valloaders.append(DataLoader(val, batch_size=64, shuffle=False))
+        x_test, y_test = zip(*train_set['test'])  # Tách features và labels
 
+        # Chuyển danh sách thành tensor
+        x_test = torch.stack(x_test).float().unsqueeze(1)  # Thêm chiều kênh: (batch_size, 1, height, width)
+        y_test = torch.tensor(y_test).long()  # Đảm bảo labels là LongTensor
+
+        # Gán lại vào dataset
+        server_set = TensorDataset(x_test, y_test)
+
+        # Sau đó tạo DataLoader bình thường
+        server_test = DataLoader(server_set, batch_size=64, shuffle=True)
+    else:
+        for i in range(args.n_client):
+            num_samples = len(ids[i])
+            num_val = int(0.2 * num_samples)
+            num_train = num_samples - num_val
+            train_indices = ids[i][:num_train]
+            val_indices = ids[i][num_train:]
+            trainloaders.append(DataLoader(Subset(train_set, train_indices), batch_size=64, shuffle=True))
+            valloaders.append(DataLoader(Subset(train_set, val_indices), batch_size=64, shuffle=False))
+        server_test = DataLoader(test_set, batch_size=64, shuffle=False)
+    log_time("DataLoader initialization", start_time)
+
+
+    start_time = time.time()
     #choose method
     if args.method == 'FedBic':
         bic_params = []
@@ -112,7 +194,7 @@ def main():
             bic_arrays = bic_[-1]
             #bic_arrays = parameters_to_ndarrays(bic_)
             bic_params.append(bic_arrays)
-            print('done append bic params client ' + str(i))
+            print('Done append bic params client ' + str(i))
 
         def client_fn(context: Context) -> Client:
             net = model_dict[args.sys_model]().to(DEVICE)
@@ -260,24 +342,33 @@ def main():
                 server_file = server_file,
                 client_file = client_file,
                 avg_file = avg_file,
-                proximal_mu = 0.9
+                proximal_mu = args.proximal_mu
             )
             return ServerAppComponents(config=config, strategy = strategy)
 
 
         # Create ServerApp
         server = ServerApp(server_fn=server_fn)
+    log_time("Server & strategy initialization", start_time)
     backend_config = {"client_resources": None}
     if DEVICE.type == "cuda":
-        backend_config = {"client_resources": {"num_gpus": 0, "num_cpus": 4}}
+        backend_config = {"client_resources": {"num_gpus": 0, "num_cpus": 5}}
 
     # Run simulation
+    start_time = time.time()
     run_simulation(
         server_app=server,
         client_app=client,
         num_supernodes=args.n_client,
         backend_config=backend_config,
     )
+    log_time("Federated Learning simulation", start_time)
+    
+    log_time("Total execution", total_start_time)
+    log_file.close()
 
 if __name__ == '__main__':
     main()
+
+
+#python main.py -mt FedBic -rd 1000 -ds etc -md ETC_CNN -is 42 -nc 6 -eps 1 -lr 0.0001 -p1_eps 50 -p1_lr 0.001

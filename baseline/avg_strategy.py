@@ -179,26 +179,26 @@ class FedAvg(Strategy):
         array_param = parameters_to_ndarrays(parameters)
         net = self.net.to(DEVICE)
         set_parameters(net, array_param)
-        loss, accuracy, df = test_2_server(net, self.testloader)
+        loss, accuracy, precision, recall, f1_score = test_2_server(net, self.testloader)
 
         # Tên file CSV
         #server_file = f"server_{self.__repr__()}_{client_epochs}_{client_lr}_{alpha}.csv"
         file_exists = os.path.isfile(self.server_file)
-        df.to_csv(self.server_file, index=True)
         
-        # # Lưu kết quả vào file CSV
-        # with open(self.server_file, mode="a", newline="") as f:
-        #   writer = csv.writer(f)
+        # Lưu kết quả vào file CSV
+        with open(self.server_file, mode="a", newline="") as f:
+          writer = csv.writer(f)
 
-        #   # Ghi header nếu file chưa tồn tại
-        #   if not file_exists:
-        #     writer.writerow(["Method","Round", "Accuracy"])
+        # Mở file CSV và ghi dữ liệu
+        with open(self.server_file, mode="a", newline="") as f:
+            writer = csv.writer(f)
 
-        #   # Lấy tên phương pháp (hàm được gọi)
-        #   method_name = self.__repr__()
+            # Ghi header nếu file chưa tồn tại
+            if not file_exists:
+                writer.writerow(["Round", "Loss", "Accuracy", "Precision", "Recall", "F1-Score"])
 
-        #   # Lưu kết quả vào file
-        #   writer.writerow([method_name,server_round, accuracy])
+            # Ghi kết quả của lần đánh giá này
+            writer.writerow([server_round, loss, accuracy, precision, recall, f1_score])
         return loss, {"accuracy": accuracy}
 
     def num_fit_clients(self, num_available_clients: int) -> Tuple[int, int]:

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from .bic_layer import BiCLayer
-
+import torchvision.models as models
 class CNN1(nn.Module):
     def __init__(self, numclass=10):
         super(CNN1, self).__init__()
@@ -41,7 +41,6 @@ class CNN1(nn.Module):
         out = out.view(out.size(0), -1)
         out = self.classifier(out)
 
-
         out = self.bic(out)
         return out
     
@@ -69,7 +68,7 @@ class ETC_CNN(nn.Module):
     self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
     self.drop3 = nn.Dropout(0.25)
 
-    self.fc1 = nn.Linear(in_features=16*2*16, out_features=256)
+    self.fc1 = nn.Linear(in_features=16*2*8, out_features=256)
     self.drop4 = nn.Dropout(0.1)
     self.fc2 = nn.Linear(in_features=256, out_features=numclass)
 
@@ -98,3 +97,21 @@ class ETC_CNN(nn.Module):
 
     x = self.bic(x)
     return x
+  
+class ResNet50(nn.Module):
+    def __init__(self, num_classes=10):
+        super(ResNet50, self).__init__()
+        self.model = models.resnet50(weights=None)
+
+        # Thay đổi input layer vì CIFAR-10 có ảnh 32x32 (ResNet-50 mặc định dùng 224x224)
+        self.model.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+
+        # Điều chỉnh Fully Connected Layer cho 10 classes của CIFAR-10
+        in_features = self.model.fc.in_features
+        self.model.fc = nn.Linear(in_features, num_classes)
+        self.bic = BiCLayer(num_classes)
+    def forward(self, x):
+        x = self.model(x)
+        x = self.bic(x)
+        return x
+   

@@ -155,4 +155,4 @@ def test_2_server(net, testloader):
     report_dict = classification_report(all_labels, all_preds, output_dict=True)
     df = pd.DataFrame(report_dict).transpose()
 
-    return loss, accuracy, df
+    return loss, accuracy, report_dict['macro avg']['precision'], report_dict['macro avg']['recall'], report_dict['macro avg']['f1-score']

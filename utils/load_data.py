@@ -7,14 +7,34 @@ import random
 from collections import Counter
 import numpy as np
 from typing import List
-
-
+import pandas as pd
+import pickle
 seed_value = 42
 random.seed(seed_value)
 torch.manual_seed(seed_value)
 
 if torch.cuda.is_available():
     torch.cuda.manual_seed_all(seed_value)
+
+NUM_PACKETS = 20
+NUM_FEATURES = 128
+
+
+
+def data_processing(df,NUM_PACKETS, NUM_FEATURES):
+   y_train = df['Label']
+   flow_id = df['flow_id']
+
+   df = df/255
+
+   X_train = df.drop(['Label', 'flow_id'], axis=1)
+   X_train = X_train.to_numpy()
+
+   X_train = X_train.reshape(-1,NUM_PACKETS, NUM_FEATURES)
+   y_train = y_train.to_numpy()
+
+   y_train = y_train.reshape(-1,NUM_PACKETS)[:,-1]
+   return X_train, y_train
 
 #define ten dataset vt thuong :V
 def load_data(dataset: str):
@@ -43,8 +63,12 @@ def load_data(dataset: str):
         trainset = MNIST('dataset/mnist', split='balanced', train=True, download=True, transform=transform)
         testset = MNIST('dataset/mnist', split='balanced', train=False, download=True, transform=transform)
 
-    elif dataset == 'ETC':
-        pass
+    elif dataset == 'etc':
+        #gquic data with additinal data 
+        with open("dataset\ETC\etc_tensor_fl_data.pkl", "rb") as f:
+            loaded_dataset = pickle.load(f)
+        trainset = {k: v for k, v in loaded_dataset.items() if k != "test"}
+        testset = loaded_dataset['test']
     # elif dataset == "emnist":
     #     transform = transforms.Compose([
     #         transforms.ToTensor(),
