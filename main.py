@@ -352,7 +352,7 @@ def main():
     log_time("Server & strategy initialization", start_time)
     backend_config = {"client_resources": None}
     if DEVICE.type == "cuda":
-        backend_config = {"client_resources": {"num_gpus": 0, "num_cpus": 5}}
+        backend_config = {"client_resources": {"num_gpus": 1, "num_cpus": 1}}
 
     # Run simulation
     start_time = time.time()
