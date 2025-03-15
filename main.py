@@ -141,8 +141,8 @@ def main():
     valloaders = []
     if args.dataset == 'etc':
         for i in range(1, 7):
-            data = train_set[f'client{i}']
-            x, y = zip(*data)  
+            dataa = train_set[f'client{i}']
+            x, y = zip(*dataa)  
             
             x = torch.stack(x).float()  
             y = torch.tensor(y).long() 
@@ -153,12 +153,12 @@ def main():
             x_train = x_train.unsqueeze(1)  
             x_val = x_val.unsqueeze(1)
 
-            train = TensorDataset(x_train, y_train)
-            val = TensorDataset(x_val, y_val)
+            traina = TensorDataset(x_train, y_train)
+            vala = TensorDataset(x_val, y_val)
 
-            trainloaders.append(DataLoader(train, batch_size=64, shuffle=True))
-            valloaders.append(DataLoader(val, batch_size=64, shuffle=False))
-        x_test, y_test = zip(*train_set['test'])  # Tách features và labels
+            trainloaders.append(DataLoader(traina, batch_size=64, shuffle=True))
+            valloaders.append(DataLoader(vala, batch_size=64, shuffle=False))
+        x_test, y_test = zip(*test_set)  # Tách features và labels
 
         # Chuyển danh sách thành tensor
         x_test = torch.stack(x_test).float().unsqueeze(1)  # Thêm chiều kênh: (batch_size, 1, height, width)
