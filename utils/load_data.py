@@ -1,4 +1,3 @@
-import torchvision
 from torchvision.datasets import CIFAR10, EMNIST, FashionMNIST, MNIST
 from torchvision.transforms import transforms
 import torch
@@ -9,6 +8,8 @@ import numpy as np
 from typing import List
 import pandas as pd
 import pickle
+import os
+
 seed_value = 42
 random.seed(seed_value)
 torch.manual_seed(seed_value)
@@ -65,7 +66,8 @@ def load_data(dataset: str):
 
     elif dataset == 'etc':
         #gquic data with additinal data 
-        with open("dataset\ETC\etc_tensor_fl_data.pkl", "rb") as f:
+        file_path = os.path.join(os.getcwd(), "dataset", "ETC", "etc_tensor_fl_data.pkl")
+        with open(file_path, "rb") as f:
             loaded_dataset = pickle.load(f)
         trainset = {k: v for k, v in loaded_dataset.items() if k != "test"}
         testset = loaded_dataset['test']
