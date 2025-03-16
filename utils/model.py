@@ -153,7 +153,7 @@ class ETC_CNN3(nn.Module):
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
 
         # Tính toán kích thước sau khi qua các lớp pooling
-        self.fc1 = nn.Linear(128 * 2 * 16, 256)  # Đầu vào 20x64 -> sau 3 lần pooling còn 2x16
+        self.fc1 = nn.Linear(2048, 256)  # Đầu vào 20x64 -> sau 3 lần pooling còn 2x16
         self.fc2 = nn.Linear(256, num_classes)
         self.dropout = nn.Dropout(0.5)
         self.bic = BiCLayer(num_classes)
