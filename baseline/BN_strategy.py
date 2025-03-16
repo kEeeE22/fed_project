@@ -16,7 +16,7 @@ from baseline.avg_strategy import FedAvg
 from utils.model import ETC_CNN3 
 
 class FedBN(FedAvg):
-    def __init__(self, model, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.model_keys = [name for name, _ in self.net.named_parameters()]
     def __repr__(self) -> str:
