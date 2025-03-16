@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 
 from utils.utils1 import train, get_parameters
 from utils.load_data import load_data, dirichlet_data, shard_data
-from utils.model import CNN1, ETC_CNN, ResNet50
+from utils.model import CNN1, ETC_CNN, ResNet50, ETC_CNN2
 
 from fedbic.bic_client import BiCClient
 from fedbic.bic_strategy import FedBic
@@ -114,7 +114,7 @@ def main():
     dataset_list = ['mnist', 'cifar10', 'etc']
     assert args.dataset in dataset_list, 'Choose a dataset that exist.'
 
-    model_dict = {'CNN1': CNN1, 'ETC_CNN': ETC_CNN, 'RESNET50': ResNet50}
+    model_dict = {'CNN1': CNN1, 'ETC_CNN': ETC_CNN, 'RESNET50': ResNet50, 'ETC_CNN2': ETC_CNN2}
     assert args.sys_model in model_dict, 'Choose a model that exist'
 
     random.seed(args.sys_i_seed)
