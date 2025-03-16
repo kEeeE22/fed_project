@@ -13,12 +13,12 @@ from flwr.common import (
     parameters_to_ndarrays,
 )
 from baseline.avg_strategy import FedAvg
-
+from utils.model import ETC_CNN3 
 
 class FedBN(FedAvg):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, model, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.model_keys = [name for name, _ in self.model.named_parameters()]
+        self.model_keys = [name for name, _ in self.net.named_parameters()]
     def __repr__(self) -> str:
         return "FedBN"
 
