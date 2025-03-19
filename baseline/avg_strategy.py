@@ -141,7 +141,7 @@ class FedAvg(Strategy):
             writer = csv.writer(f)
 
             if not file_exists:
-                writer.writerow(["Round", "Loss", "Accuracy", "Precision", "Recall", "F1-Score"])
+                writer.writerow(["Round", "ID","Loss", "Accuracy", "Precision", "Recall", "F1-Score"])
         
             for _, evaluate_res in results:
                 writer.writerow([
@@ -159,7 +159,7 @@ class FedAvg(Strategy):
             metrics_aggregated = self.evaluate_metrics_aggregation_fn(
                 [(evaluate_res.num_examples, evaluate_res.metrics) for _, evaluate_res in results]
             )
-
+            print("Aggregated Metrics:", metrics_aggregated)
             # Tên file CSV
             #avg_file = f"avg_{self.__repr__()}_{client_epochs}_{client_lr}_{alpha}.csv"
             file_exists = os.path.isfile(self.avg_file)
