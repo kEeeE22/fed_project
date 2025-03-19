@@ -224,10 +224,30 @@ class FedAvg(Strategy):
     
 
 
-def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
-    # Multiply accuracy of each client by number of examples used
-    accuracies = [num_examples * m["accuracy"] for num_examples, m in metrics]
-    examples = [num_examples for num_examples, _ in metrics]
+# def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
+#     # Multiply accuracy of each client by number of examples used
+#     accuracies = [num_examples * m["accuracy"] for num_examples, m in metrics]
+#     examples = [num_examples for num_examples, _ in metrics]
 
-    # Aggregate and return custom metric (weighted average)
-    return {"accuracy": sum(accuracies) / sum(examples)}
+#     # Aggregate and return custom metric (weighted average)
+#     return {"accuracy": sum(accuracies) / sum(examples)}
+
+
+def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
+    examples = [num_examples for num_examples, _ in metrics]
+    total_examples = sum(examples)
+
+    # Nếu không có mẫu nào, tránh lỗi chia cho 0
+    if total_examples == 0:
+        return {"loss": 0, "accuracy": 0, "precision": 0, "recall": 0, "f1_score": 0}
+
+    # Tính trung bình có trọng số cho từng metric
+    weighted_metrics = {
+        "loss": sum(num_examples * m["loss"] for num_examples, m in metrics) / total_examples,
+        "accuracy": sum(num_examples * m["accuracy"] for num_examples, m in metrics) / total_examples,
+        "precision": sum(num_examples * m["precision"] for num_examples, m in metrics) / total_examples,
+        "recall": sum(num_examples * m["recall"] for num_examples, m in metrics) / total_examples,
+        "f1_score": sum(num_examples * m["f1_score"] for num_examples, m in metrics) / total_examples,
+    }
+
+    return weighted_metrics
