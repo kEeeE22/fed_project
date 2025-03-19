@@ -2,8 +2,7 @@ from typing import Callable, List, Tuple, Optional, Union, Dict
 from flwr.server.client_manager import ClientManager
 from flwr.server.client_proxy import ClientProxy
 from flwr.server.strategy.aggregate import aggregate
-import os
-import csv
+
 from flwr.common import (
     FitIns,
     FitRes,

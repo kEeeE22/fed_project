@@ -138,13 +138,21 @@ class FedAvg(Strategy):
         file_exists = os.path.isfile(self.client_file)
 
         with open(self.client_file, mode="a", newline="") as f:
-          writer = csv.writer(f)
+            writer = csv.writer(f)
 
-          if not file_exists:
-              writer.writerow(["Round", "Client ID", "Accuracy"])
-
-          for client_id, acc in client_accuracies.items():
-              writer.writerow([server_round, client_id, acc])
+            if not file_exists:
+                writer.writerow(["Round", "Loss", "Accuracy", "Precision", "Recall", "F1-Score"])
+        
+            for _, evaluate_res in results:
+                writer.writerow([
+                    server_round,
+                    evaluate_res.metrics["cid"],
+                    evaluate_res.loss,
+                    evaluate_res.metrics["accuracy"],
+                    evaluate_res.metrics["precision"],
+                    evaluate_res.metrics["recall"],
+                    evaluate_res.metrics["f1_score"]
+                ])
 
 
         if self.evaluate_metrics_aggregation_fn:
@@ -162,13 +170,18 @@ class FedAvg(Strategy):
 
                 # Ghi header nếu file chưa tồn tại
                 if not file_exists:
-                    writer.writerow(["Method","Round", "Accuracy"])
+                    writer.writerow(["Round", "Loss", "Accuracy", "Precision", "Recall", "F1-Score"])
 
                 # Lấy tên phương pháp (hàm được gọi)
-                method_name = self.__repr__()
-
-                # Lưu kết quả vào file
-                writer.writerow([method_name,server_round,metrics_aggregated['accuracy']])
+                #method_name = self.__repr__()
+                writer.writerow([
+                    server_round,
+                    metrics_aggregated.get("loss", None),       # Tránh lỗi KeyError
+                    metrics_aggregated.get("accuracy", None),
+                    metrics_aggregated.get("precision", None),
+                    metrics_aggregated.get("recall", None),
+                    metrics_aggregated.get("f1_score", None),
+                ])
         else:
             metrics_aggregated = {}
         return loss_aggregated, metrics_aggregated

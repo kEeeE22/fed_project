@@ -20,8 +20,6 @@ if torch.cuda.is_available():
 NUM_PACKETS = 20
 NUM_FEATURES = 128
 
-
-
 def data_processing(df,NUM_PACKETS, NUM_FEATURES):
    y_train = df['Label']
    flow_id = df['flow_id']

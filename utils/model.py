@@ -43,7 +43,26 @@ class CNN1(nn.Module):
 
         out = self.bic(out)
         return out
+
+class ResNet50(nn.Module):
+    def __init__(self, num_classes=10):
+        super(ResNet50, self).__init__()
+        self.model = models.resnet50(weights=None)
+
+        # Thay đổi input layer vì CIFAR-10 có ảnh 32x32 (ResNet-50 mặc định dùng 224x224)
+        self.model.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+
+        # Điều chỉnh Fully Connected Layer cho 10 classes của CIFAR-10
+        in_features = self.model.fc.in_features
+        self.model.fc = nn.Linear(in_features, num_classes)
+        self.bic = BiCLayer(num_classes)
+    def forward(self, x):
+        x = self.model(x)
+        x = self.bic(x)
+        return x
     
+
+#Mo hinh cho phan loai luu luong mang
 class ETC_CNN(nn.Module):
   def __init__(self, numclass=3):
     super(ETC_CNN, self).__init__()
@@ -98,23 +117,6 @@ class ETC_CNN(nn.Module):
     x = self.bic(x)
     return x
   
-class ResNet50(nn.Module):
-    def __init__(self, num_classes=10):
-        super(ResNet50, self).__init__()
-        self.model = models.resnet50(weights=None)
-
-        # Thay đổi input layer vì CIFAR-10 có ảnh 32x32 (ResNet-50 mặc định dùng 224x224)
-        self.model.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
-
-        # Điều chỉnh Fully Connected Layer cho 10 classes của CIFAR-10
-        in_features = self.model.fc.in_features
-        self.model.fc = nn.Linear(in_features, num_classes)
-        self.bic = BiCLayer(num_classes)
-    def forward(self, x):
-        x = self.model(x)
-        x = self.bic(x)
-        return x
-   
 
 class ETC_CNN2(nn.Module):
     def __init__(self, num_classes=3):
@@ -151,8 +153,7 @@ class ETC_CNN3(nn.Module):
         self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
         self.bn3 = nn.BatchNorm2d(128)
         self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
-
-        # Tính toán kích thước sau khi qua các lớp pooling
+        
         self.fc1 = nn.Linear(2048, 256)  # Đầu vào 20x64 -> sau 3 lần pooling còn 2x16
         self.fc2 = nn.Linear(256, num_classes)
         self.dropout = nn.Dropout(0.5)
@@ -166,5 +167,23 @@ class ETC_CNN3(nn.Module):
         x = F.relu(self.fc1(x))
         x = self.dropout(x)
         x = self.fc2(x)
+        x = self.bic(x)
+        return x
+    
+
+class ETC_RESNNET18(nn.Module):
+    def __init__(self, num_classes=3):
+        super(ETC_RESNNET18, self).__init__()
+        self.model = models.resnet18(weights=None)
+        
+        # Chỉnh sửa lớp đầu vào để phù hợp với dữ liệu 1 kênh
+        self.model.conv1 = nn.Conv2d(1, 64, kernel_size=7, stride=2, padding=3, bias=False)
+        
+        # Thay đổi lớp fully connected cuối cùng để phù hợp với số lượng classes
+        in_features = self.model.fc.in_features
+        self.model.fc = nn.Linear(in_features, num_classes)
+        self.bic = BiCLayer(num_classes)
+    def forward(self, x):
+        x = self.model(x)
         x = self.bic(x)
         return x

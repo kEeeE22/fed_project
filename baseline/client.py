@@ -14,7 +14,7 @@ import numpy as np
 from typing import List
 from flwr.client import Client
 
-from utils.utils1 import get_parameters, set_parameters, train, test
+from utils.utils1 import get_parameters, set_parameters, train, test, test_2_server
 
 class BaselineClient(Client):
     def __init__(self, partition_id, net, trainloader, valloader, epochs, client_lr):
@@ -68,7 +68,7 @@ class BaselineClient(Client):
         ndarrays_original = parameters_to_ndarrays(parameters_original)
 
         set_parameters(self.net, ndarrays_original)
-        loss, accuracy = test(self.net, self.valloader)
+        loss, accuracy, precision, recall, f1_score = test_2_server(self.net, self.valloader)
 
 
         # Build and return response
@@ -77,5 +77,5 @@ class BaselineClient(Client):
             status=status,
             loss=float(loss),
             num_examples=len(self.valloader),
-            metrics={"accuracy": float(accuracy), "cid":self.partition_id},
+            metrics={"accuracy": float(accuracy), "cid":self.partition_id, "precision": precision, "recall": recall, "f1_score": f1_score},
         )
