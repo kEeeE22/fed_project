@@ -77,5 +77,5 @@ class BaselineClient(Client):
             status=status,
             loss=float(loss),
             num_examples=len(self.valloader),
-            metrics={"accuracy": float(accuracy), "cid":self.partition_id, "precision": precision, "recall": recall, "f1_score": f1_score},
+            metrics={"accuracy": float(accuracy), "cid":self.partition_id, "precision": precision, "recall": recall, "f1_score": f1_score, "loss": loss},
         )
