@@ -12,12 +12,11 @@ from flwr.common import (
     parameters_to_ndarrays,
 )
 from baseline.avg_strategy import FedAvg
-from utils.model import ETC_CNN3 
-
+import torch
 class FedBN(FedAvg):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.model_keys = [name for name, _ in self.net.named_parameters()]
+        self.model_keys = [name for name, _ in self.net.named_parameters() if "bn" not in name.lower()]
     def __repr__(self) -> str:
         return "FedBN"
 
@@ -41,10 +40,15 @@ class FedBN(FedAvg):
     def filter_out_batchnorm_layers(self, parameters: Parameters) -> Parameters:
         """Loại bỏ BatchNorm layers khỏi tham số của mô hình."""
         ndarrays = parameters_to_ndarrays(parameters)
+
+        print(f"[DEBUG] Tổng số parameters ban đầu: {len(ndarrays)}")
+
         filtered_params = [
             param for name, param in zip(self.model_keys, ndarrays)
             if "bn" not in name.lower()  # Loại bỏ BatchNorm layers
         ]
+
+        print(f"[DEBUG] Số lượng parameters sau khi lọc BatchNorm: {len(filtered_params)}")
         return ndarrays_to_parameters(filtered_params)
 
     def aggregate_fit(
@@ -65,4 +69,15 @@ class FedBN(FedAvg):
 
         # Chuyển đổi lại thành Parameters object
         final_params = ndarrays_to_parameters(array_param)
-        return final_params, {}
+        full_state_dict = self.net.state_dict()
+        new_params = parameters_to_ndarrays(final_params)
+
+        param_idx = 0
+        for name in full_state_dict.keys():
+            if "bn" not in name.lower():  # Chỉ cập nhật layer không phải BatchNorm
+                full_state_dict[name] = torch.tensor(new_params[param_idx])
+                param_idx += 1
+
+        self.net.load_state_dict(full_state_dict, strict=False)
+
+        return ndarrays_to_parameters(list(full_state_dict.values())), {}
