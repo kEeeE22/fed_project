@@ -152,7 +152,7 @@ def test_2_server(net, testloader):
     accuracy = correct / total
 
     # Tạo classification report
-    report_dict = classification_report(all_labels, all_preds, output_dict=True)
+    report_dict = classification_report(all_labels, all_preds, output_dict=True, zero_division=1)
     df = pd.DataFrame(report_dict).transpose()
 
     return loss, accuracy, report_dict['macro avg']['precision'], report_dict['macro avg']['recall'], report_dict['macro avg']['f1-score']

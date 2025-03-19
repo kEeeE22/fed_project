@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 
 from utils.utils1 import train, get_parameters
 from utils.load_data import load_data, dirichlet_data, shard_data
-from utils.model import CNN1, ETC_CNN, ResNet50, ETC_CNN2, ETC_CNN3
+from utils.model import CNN1, ETC_CNN, ResNet50, ETC_CNN2, ETC_CNN3, ETC_RESNET18
 
 from fedbic.bic_client import BiCClient
 from fedbic.bic_strategy import FedBic
@@ -114,7 +114,7 @@ def main():
     dataset_list = ['mnist', 'cifar10', 'etc']
     assert args.dataset in dataset_list, 'Choose a dataset that exist.'
 
-    model_dict = {'CNN1': CNN1, 'ETC_CNN': ETC_CNN, 'RESNET50': ResNet50, 'ETC_CNN2': ETC_CNN2, 'ETC_CNN3': ETC_CNN3}
+    model_dict = {'CNN1': CNN1, 'ETC_CNN': ETC_CNN, 'RESNET50': ResNet50, 'ETC_CNN2': ETC_CNN2, 'ETC_CNN3': ETC_CNN3, 'ETC_RESNET18': ETC_RESNET18}
     assert args.sys_model in model_dict, 'Choose a model that exist'
 
     random.seed(args.sys_i_seed)
@@ -371,4 +371,4 @@ if __name__ == '__main__':
     main()
 
 
-#python main.py -mt FedBic -rd 1000 -ds etc -md ETC_CNN -is 42 -nc 6 -eps 1 -lr 0.0001 -p1_eps 50 -p1_lr 0.001
+#python main.py -mt FedBic -rd 1000 -ds etc -md ETC_CNN -is 42 -nc 6 -eps 1 -lr 0.0001 -p1-eps 50 -p1-lr 0.001

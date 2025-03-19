@@ -171,9 +171,9 @@ class ETC_CNN3(nn.Module):
         return x
     
 
-class ETC_RESNNET18(nn.Module):
+class ETC_RESNET18(nn.Module):
     def __init__(self, num_classes=3):
-        super(ETC_RESNNET18, self).__init__()
+        super(ETC_RESNET18, self).__init__()
         self.model = models.resnet18(weights=None)
         
         # Chỉnh sửa lớp đầu vào để phù hợp với dữ liệu 1 kênh
