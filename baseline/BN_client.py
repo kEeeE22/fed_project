@@ -12,21 +12,25 @@ from baseline.client import BaselineClient
 
 
 class BNClient(BaselineClient):
-    def fit(self, ins: FitIns) -> FitRes:
-        print(f"[Client {self.partition_id}] fit, config: {ins.config}")
+    def __init__(self, partition_id, net, trainloader, valloader, epochs, client_lr):
+        super().__init__(partition_id, net, trainloader, valloader, epochs, client_lr)
 
-        # Nhận tham số từ server nhưng không ghi đè BatchNorm layers
+    def fit(self, ins: FitIns) -> FitRes:
+        print(f"[Client {self.partition_id}] FedBN fit, config: {ins.config}")
+
+        # Nhận trọng số toàn cục từ server
         parameters_original = ins.parameters
         ndarrays_original = parameters_to_ndarrays(parameters_original)
+        
+        # Chỉ cập nhật trọng số của các lớp fully connected, bỏ qua BatchNorm
+        for param, new_param in zip(self.net.parameters(), ndarrays_original):
+            if "bn" not in param.name:  # Giữ nguyên BatchNorm
+                param.data = torch.tensor(new_param, dtype=param.data.dtype, device=param.data.device)
 
-        # Chỉ cập nhật trọng số không phải BatchNorm
-        self.set_parameters_except_batchnorm(self.net, ndarrays_original)
-
-        # Huấn luyện client bình thường
+        # Huấn luyện mô hình
         train(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
-
-        # Lấy lại tham số sau khi train xong
         ndarrays_updated = get_parameters(self.net)
+
         parameters_updated = ndarrays_to_parameters(ndarrays_updated)
 
         status = Status(code=Code.OK, message="Success")
@@ -36,15 +40,3 @@ class BNClient(BaselineClient):
             num_examples=len(self.trainloader),
             metrics={},
         )
-
-    def set_parameters_except_batchnorm(self, model, parameters):
-        """Cập nhật tham số từ server nhưng giữ nguyên BatchNorm layers."""
-        state_dict = model.state_dict()
-        param_idx = 0
-
-        for name, param in state_dict.items():
-            if "bn" not in name.lower():  # Chỉ cập nhật nếu không phải BatchNorm
-                state_dict[name] = torch.tensor(parameters[param_idx])
-                param_idx += 1
-
-        model.load_state_dict(state_dict, strict=False)

@@ -12,44 +12,28 @@ from flwr.common import (
     parameters_to_ndarrays,
 )
 from baseline.avg_strategy import FedAvg
-import torch
+import numpy as np
+
+def get_parameters_BN(net) -> List[np.ndarray]:
+    return [val.cpu().numpy() for name, val in net.state_dict().items() if "bn" not in name]
 class FedBN(FedAvg):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.model_keys = [name for name, _ in self.net.named_parameters() if "bn" not in name.lower()]
-    def __repr__(self) -> str:
-        return "FedBN"
-
-    def configure_fit(
-        self, server_round: int, parameters: Parameters, client_manager: ClientManager
-    ) -> List[Tuple[ClientProxy, FitIns]]:
-        sample_size, min_num_clients = self.num_fit_clients(
-            client_manager.num_available()
+    def __init__(
+        self,
+        fraction_fit: float = 1.0,
+        fraction_evaluate: float = 0.5,
+        min_fit_clients: int = 10,
+        min_evaluate_clients: int = 5,
+        min_available_clients: int = 10,
+        **kwargs
+    ) -> None:
+        super().__init__(
+            fraction_fit=fraction_fit,
+            fraction_evaluate=fraction_evaluate,
+            min_fit_clients=min_fit_clients,
+            min_evaluate_clients=min_evaluate_clients,
+            min_available_clients=min_available_clients,
+            **kwargs
         )
-        clients = client_manager.sample(
-            num_clients=sample_size, min_num_clients=min_num_clients
-        )
-
-        # Chỉ gửi các tham số không thuộc BatchNorm layers
-        parameters_filtered = self.filter_out_batchnorm_layers(parameters)
-
-        standard_config = {"server_round": server_round}
-
-        return [(client, FitIns(parameters_filtered, standard_config)) for client in clients]
-
-    def filter_out_batchnorm_layers(self, parameters: Parameters) -> Parameters:
-        """Loại bỏ BatchNorm layers khỏi tham số của mô hình."""
-        ndarrays = parameters_to_ndarrays(parameters)
-
-        print(f"[DEBUG] Tổng số parameters ban đầu: {len(ndarrays)}")
-
-        filtered_params = [
-            param for name, param in zip(self.model_keys, ndarrays)
-            if "bn" not in name.lower()  # Loại bỏ BatchNorm layers
-        ]
-
-        print(f"[DEBUG] Số lượng parameters sau khi lọc BatchNorm: {len(filtered_params)}")
-        return ndarrays_to_parameters(filtered_params)
 
     def aggregate_fit(
         self,
@@ -60,24 +44,18 @@ class FedBN(FedAvg):
         if not results:
             return None, {}
 
-        # Chỉ tổng hợp các tham số không phải BatchNorm
         weights_results = [
-            (self.filter_out_batchnorm_layers(fit_res.parameters), fit_res.num_examples)
+            (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples)
             for _, fit_res in results
         ]
-        array_param = aggregate(weights_results)
 
-        # Chuyển đổi lại thành Parameters object
-        final_params = ndarrays_to_parameters(array_param)
-        full_state_dict = self.net.state_dict()
-        new_params = parameters_to_ndarrays(final_params)
+        aggregated_weights = aggregate(weights_results)
+        
+        # Chỉ tổng hợp trọng số của các lớp fully connected, giữ nguyên BatchNorm
+        previous_weights = get_parameters_BN(self.net)
+        for i, (prev, new) in enumerate(zip(previous_weights, aggregated_weights)):
+            if "bn" in self.net.state_dict().keys()[i]:  # Bỏ qua BatchNorm
+                aggregated_weights[i] = prev
 
-        param_idx = 0
-        for name in full_state_dict.keys():
-            if "bn" not in name.lower():  # Chỉ cập nhật layer không phải BatchNorm
-                full_state_dict[name] = torch.tensor(new_params[param_idx])
-                param_idx += 1
-
-        self.net.load_state_dict(full_state_dict, strict=False)
-
-        return ndarrays_to_parameters(list(full_state_dict.values())), {}
+        final_params = ndarrays_to_parameters(aggregated_weights)
+        return final_params, {}
