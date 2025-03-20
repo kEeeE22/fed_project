@@ -133,8 +133,8 @@ def main():
     os.makedirs("results", exist_ok=True)
     # file
     avg_file = f"results/avg_{args.method}_{args.num_round}_{args.dataset}_{args.sys_model}_{args.n_client}_{args.client_lr}_{args.beta}.csv"
-    client_file = f'results/client_{args.method}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
-    server_file = f'results/server_{args.method}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
+    client_file = f'results/client_{args.method}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
+    server_file = f'results/server_{args.method}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
 
     start_time = time.time()
     trainloaders = []

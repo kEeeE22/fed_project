@@ -12,7 +12,7 @@ from flwr.common.typing import NDArrays
 from typing import Dict, List
 import torch
 from collections import OrderedDict
-from utils.utils1 import get_parameters, train, set_parameters, test_2_server
+from utils.utils1 import train, set_parameters, test_2_server
 from baseline.client import BaselineClient
 import os
 import pickle
@@ -27,41 +27,43 @@ class BNClient(BaselineClient):
         os.makedirs(bn_state_dir, exist_ok=True)
         self.bn_state_pkl = os.path.join(bn_state_dir, f"client_{partition_id}.pkl")
 
-    def set_parameters_BN(self,net, parameters: List[np.ndarray]) -> None:
-        """Set model parameters from a list of NumPy ndarrays Exclude the bn layer if.
+    def set_parameters_BN(self, net, parameters: List[np.ndarray]) -> None:
+      keys = [k for k in net.state_dict().keys() if "bn" not in k]
+      
+      # Load BatchNorm từ file `.pkl`
+      bn_state_dict = self._load_bn_statedict()
 
-        available.
-        """
-        keys = [k for k in net.state_dict().keys() if "bn" not in k]
-        params_dict = zip(keys, parameters)
-        state_dict = OrderedDict({k: torch.tensor(v) for k, v in params_dict})
-        net.load_state_dict(state_dict, strict=False)
+      # Tạo OrderedDict từ các parameters được nhận
+      state_dict = OrderedDict()
+      for k, v in zip(keys, parameters):
+          state_dict[k] = torch.tensor(v, dtype=torch.float32)
+      
+      # Gộp thêm BatchNorm nếu có
+      state_dict.update(bn_state_dict)
 
-        # Now also load from bn_state_dir
-        if os.path.exists(self.bn_state_pkl):  # It won't exist in the first round
-            bn_state_dict = self._load_bn_statedict()
-            net.load_state_dict(bn_state_dict, strict=False)
+      # Load vào model
+      net.load_state_dict(state_dict, strict=False)
 
-    def get_parameters(self) -> NDArrays:
+    def get_parameters(self, net) -> NDArrays:
         """Return model parameters as a list of NumPy ndarrays w or w/o using BN.
 
         layers.
         """
         # First update bn_state_dir
-        self._save_bn_statedict()
+        self._save_bn_statedict(net)
         # Excluding parameters of BN layers when using FedBN
         params = [
             val.cpu().numpy()
-            for name, val in self.net.state_dict().items()
+            for name, val in net.state_dict().items()
             if "bn" not in name
         ]
         return params
 
-    def _save_bn_statedict(self) -> None:
+    def _save_bn_statedict(self,net) -> None:
         """Save contents of state_dict related to BN layers."""
         bn_state = {
             name: val.cpu().numpy()
-            for name, val in self.net.state_dict().items()
+            for name, val in net.state_dict().items()
             if "bn" in name
         }
 
@@ -84,10 +86,10 @@ class BNClient(BaselineClient):
         else:
             parameters_original = ins.parameters
             ndarrays_original = parameters_to_ndarrays(parameters_original)
-            self.set_parameters_BN(self.net, self.ndarrays_original)
+            self.set_parameters_BN(self.net, ndarrays_original)
         
         train(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
-        ndarrays_updated = get_parameters(self.net)
+        ndarrays_updated = self.get_parameters(self.net)
 
         parameters_updated = ndarrays_to_parameters(ndarrays_updated)
 
@@ -106,6 +108,9 @@ class BNClient(BaselineClient):
         parameters_original = ins.parameters
         ndarrays_original = parameters_to_ndarrays(parameters_original)
 
+        # for i, param in enumerate(ndarrays_original):
+        #   print(f"Param {i}: shape={param.shape}, dtype={param.dtype}")
+          
         self.set_parameters_BN(self.net, ndarrays_original)
         loss, accuracy, precision, recall, f1_score = test_2_server(self.net, self.valloader)
 
