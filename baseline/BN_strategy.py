@@ -52,10 +52,10 @@ class FedBN(FedAvg):
         aggregated_weights = aggregate(weights_results)
         
         # Chỉ tổng hợp trọng số của các lớp fully connected, giữ nguyên BatchNorm
-        previous_weights = get_parameters_BN(self.net)
-        for i, (prev, new) in enumerate(zip(previous_weights, aggregated_weights)):
-            if "bn" in self.net.state_dict().keys()[i]:  # Bỏ qua BatchNorm
-                aggregated_weights[i] = prev
+        # previous_weights = get_parameters_BN(self.net)
+        # for i, (prev, new) in enumerate(zip(previous_weights, aggregated_weights)):
+        #     if "bn" in self.net.state_dict().keys()[i]:  # Bỏ qua BatchNorm
+        #         aggregated_weights[i] = prev
 
         final_params = ndarrays_to_parameters(aggregated_weights)
         return final_params, {}
