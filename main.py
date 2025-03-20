@@ -281,9 +281,10 @@ def main():
             valloader = valloaders[partition_id]
             epochs = args.client_epochs
             client_lr = args.client_lr
+            bn_state_dir = "results/bn_state"
             #epochs = random.randint(1,5)
             #epochs = client_epochs.get(f"client_{partition_id}", 1)
-            return BNClient(partition_id, net, trainloader, valloader, epochs, client_lr).to_client()
+            return BNClient(partition_id, net, trainloader, valloader, epochs, client_lr, bn_state_dir).to_client()
 
 
         # Create the ClientApp
