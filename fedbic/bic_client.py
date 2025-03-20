@@ -10,7 +10,7 @@ from flwr.common import (
     parameters_to_ndarrays,
 )
 
-from utils.utils1 import get_parameters, set_parameters, train, test
+from utils.utils1 import get_parameters, set_parameters, train, test, test_2_server
 
 
 class BiCClient(BaselineClient):
@@ -68,7 +68,7 @@ class BiCClient(BaselineClient):
         #   print("[WARNING] self.bic_prams is None! Skipping update for BiC Layer.")
         #   print(self.bic_prams)
         set_parameters(self.net, ndarrays_original)
-        loss, accuracy = test(self.net, self.valloader)
+        loss, accuracy, precision, recall, f1_score = test_2_server(self.net, self.valloader)
 
 
         # Build and return response
@@ -77,5 +77,5 @@ class BiCClient(BaselineClient):
             status=status,
             loss=float(loss),
             num_examples=len(self.valloader.dataset),
-            metrics={"accuracy": float(accuracy), "cid":self.partition_id},
+            metrics={"accuracy": float(accuracy), "cid":self.partition_id, "precision": precision, "recall": recall, "f1_score": f1_score, "loss": loss},
         )

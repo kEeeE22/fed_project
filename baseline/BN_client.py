@@ -18,15 +18,12 @@ class BNClient(BaselineClient):
     def fit(self, ins: FitIns) -> FitRes:
         print(f"[Client {self.partition_id}] FedBN fit, config: {ins.config}")
 
-        # Nhận trọng số toàn cục từ server
         parameters_original = ins.parameters
         ndarrays_original = parameters_to_ndarrays(parameters_original)
         
-        # Chỉ cập nhật trọng số của các lớp fully connected, bỏ qua BatchNorm
-        for param, new_param in zip(self.net.parameters(), ndarrays_original):
-            if "bn" not in param.name:  # Giữ nguyên BatchNorm
-                param.data = torch.tensor(new_param, dtype=param.data.dtype, device=param.data.device)
-
+        for (name, param), new_param in zip(self.net.named_parameters(), ndarrays_original):
+            if "bn" not in name:
+                param.data.copy_(torch.tensor(new_param, dtype=param.data.dtype, device=param.data.device))
         # Huấn luyện mô hình
         train(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
         ndarrays_updated = get_parameters(self.net)
