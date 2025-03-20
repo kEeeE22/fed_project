@@ -18,7 +18,16 @@ import os
 import pickle
 import numpy as np 
 
-def set_parameters_BN(self,net, parameters: List[np.ndarray]) -> None:
+
+
+class BNClient(BaselineClient):
+    def __init__(self, partition_id, net, trainloader, valloader, epochs, client_lr, bn_state_dir):
+        super().__init__(partition_id, net, trainloader, valloader, epochs, client_lr)
+        bn_state_dir = os.path.join(bn_state_dir, f"client_{partition_id}")
+        os.makedirs(bn_state_dir, exist_ok=True)
+        self.bn_state_pkl = os.path.join(bn_state_dir, f"client_{partition_id}.pkl")
+
+    def set_parameters_BN(self,net, parameters: List[np.ndarray]) -> None:
         """Set model parameters from a list of NumPy ndarrays Exclude the bn layer if.
 
         available.
@@ -32,13 +41,6 @@ def set_parameters_BN(self,net, parameters: List[np.ndarray]) -> None:
         if os.path.exists(self.bn_state_pkl):  # It won't exist in the first round
             bn_state_dict = self._load_bn_statedict()
             net.load_state_dict(bn_state_dict, strict=False)
-
-class BNClient(BaselineClient):
-    def __init__(self, partition_id, net, trainloader, valloader, epochs, client_lr, bn_state_dir):
-        super().__init__(partition_id, net, trainloader, valloader, epochs, client_lr)
-        bn_state_dir = os.path.join(bn_state_dir, f"client_{partition_id}")
-        os.makedirs(bn_state_dir, exist_ok=True)
-        self.bn_state_pkl = os.path.join(bn_state_dir, f"client_{partition_id}.pkl")
 
     def get_parameters(self) -> NDArrays:
         """Return model parameters as a list of NumPy ndarrays w or w/o using BN.
@@ -75,14 +77,14 @@ class BNClient(BaselineClient):
     
     def fit(self, ins: FitIns) -> FitRes:
         print(f"[Client {self.partition_id}] FedBN fit, config: {ins.config}")
-        if ins.standard_config == 1:
+        if ins.config.get("server_round", 0) == 1:
             parameters_original = ins.parameters
             ndarrays_original = parameters_to_ndarrays(parameters_original)
             set_parameters(self.net, ndarrays_original)
         else:
             parameters_original = ins.parameters
             ndarrays_original = parameters_to_ndarrays(parameters_original)
-            set_parameters_BN(self.net, ndarrays_original)
+            self.set_parameters_BN(self.net, self.ndarrays_original)
         
         train(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
         ndarrays_updated = get_parameters(self.net)
@@ -104,9 +106,8 @@ class BNClient(BaselineClient):
         parameters_original = ins.parameters
         ndarrays_original = parameters_to_ndarrays(parameters_original)
 
-        set_parameters_BN(self.net, ndarrays_original)
+        self.set_parameters_BN(self.net, ndarrays_original)
         loss, accuracy, precision, recall, f1_score = test_2_server(self.net, self.valloader)
-
 
         # Build and return response
         status = Status(code=Code.OK, message="Success")
