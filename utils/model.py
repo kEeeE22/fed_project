@@ -195,26 +195,36 @@ class ETC_CNN1D(nn.Module):
         super(ETC_CNN1D, self).__init__()
         
         self.conv1 = nn.Conv1d(in_channels=input_channels, out_channels=64, kernel_size=5, stride=1, padding=2)
+        self.bn1 = nn.BatchNorm1d(64)  # BatchNorm sau conv1
+
         self.conv2 = nn.Conv1d(in_channels=64, out_channels=128, kernel_size=5, stride=1, padding=2)
+        self.bn2 = nn.BatchNorm1d(128)  # BatchNorm sau conv2
         self.pool = nn.MaxPool1d(kernel_size=2, stride=2)
-        
+
         self.conv3 = nn.Conv1d(in_channels=128, out_channels=256, kernel_size=3, stride=1, padding=1)
+        self.bn3 = nn.BatchNorm1d(256)  # BatchNorm sau conv3
+
         self.conv4 = nn.Conv1d(in_channels=256, out_channels=512, kernel_size=3, stride=1, padding=1)
-        
-        self.fc1 = nn.Linear(512 * (20*64 // 16), 256)
+        self.bn4 = nn.BatchNorm1d(512)  # BatchNorm sau conv4
+
+        # Tính toán kích thước đầu vào của FC
+        final_feature_map_size = 1280 // 4  # Sau 2 lớp MaxPool1d
+        self.fc1 = nn.Linear(512 * final_feature_map_size, 256)
+        self.bn_fc = nn.BatchNorm1d(256)  # BatchNorm trước FC2
         self.fc2 = nn.Linear(256, output_size)
         self.bic = BiCLayer(output_size)
 
     def forward(self, x):
-        x = x.view(x.size(0), 1, -1)
-        x = F.relu(self.conv1(x))
-        x = self.pool(F.relu(self.conv2(x)))
-        
-        x = F.relu(self.conv3(x))
-        x = self.pool(F.relu(self.conv4(x)))
-        
-        x = x.view(x.size(0), -1)
-        x = F.relu(self.fc1(x))
+        x = x.view(x.size(0), 1, -1)  # Chuyển (batch, 1, 20, 64) → (batch, 1, 1280)
+
+        x = F.relu(self.bn1(self.conv1(x)))
+        x = self.pool(F.relu(self.bn2(self.conv2(x))))
+
+        x = F.relu(self.bn3(self.conv3(x)))
+        x = self.pool(F.relu(self.bn4(self.conv4(x))))
+
+        x = x.view(x.size(0), -1)  # Flatten
+        x = F.relu(self.bn_fc(self.fc1(x)))
         x = self.fc2(x)
         x = self.bic(x)
         return x
