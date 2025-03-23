@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from .bic_layer import BiCLayer
 import torchvision.models as models
+
+
 class CNN1(nn.Module):
     def __init__(self, numclass=10):
         super(CNN1, self).__init__()
@@ -185,5 +187,27 @@ class ETC_RESNET18(nn.Module):
         self.bic = BiCLayer(num_classes)
     def forward(self, x):
         x = self.model(x)
+        x = self.bic(x)
+        return x
+    
+class ETC_CNN1D(nn.Module):
+    def __init__(self, input_channels=1, output_size=3):
+        super(ETC_CNN1D, self).__init__()
+        
+        self.conv1 = nn.Conv1d(in_channels=input_channels, out_channels=32, kernel_size=3, stride=1, padding=1)
+        self.conv2 = nn.Conv1d(in_channels=32, out_channels=64, kernel_size=3, stride=1, padding=1)
+        
+        self.fc1 = nn.Linear(64 * 20, 128) 
+        self.fc2 = nn.Linear(128, output_size)
+        self.bic = BiCLayer(output_size)
+
+    def forward(self, x):
+        x = x.squeeze(1)
+        x = F.relu(self.conv1(x))
+        x = F.relu(self.conv2(x))
+        
+        x = x.view(x.size(0), -1)
+        x = F.relu(self.fc1(x))
+        x = self.fc2(x)
         x = self.bic(x)
         return x

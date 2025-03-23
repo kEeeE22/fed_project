@@ -10,7 +10,6 @@ from flwr.common import (
     Scalar,
 )
 from baseline.avg_strategy import FedAvg
-from utils.utils1 import train, set_parameters, test_2_server
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
