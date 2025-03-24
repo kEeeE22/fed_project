@@ -62,7 +62,7 @@ def load_data(dataset: str):
         trainset = MNIST('dataset/mnist', split='balanced', train=True, download=True, transform=transform)
         testset = MNIST('dataset/mnist', split='balanced', train=False, download=True, transform=transform)
 
-    elif dataset == 'etc64':
+    elif dataset == 'etc':
         #gquic data with additinal data 
         file_path = os.path.join(os.getcwd(), "dataset", "ETC", "etc_tensor_fl_data.pkl")
         with open(file_path, "rb") as f:
