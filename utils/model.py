@@ -118,7 +118,74 @@ class ETC_CNN(nn.Module):
 
     x = self.bic(x)
     return x
-  
+
+class ETC_CNN_0_1(nn.Module):
+    def __init__(self, numclass=3):
+        super(ETC_CNN_0_1, self).__init__()
+        
+        self.conv1 = nn.Conv2d(in_channels=1, out_channels=128, kernel_size=5, padding='same')
+        self.bn1 = nn.BatchNorm2d(128)
+        self.relu1 = nn.ReLU()
+        
+        self.conv2 = nn.Conv2d(in_channels=128, out_channels=64, kernel_size=5, padding='same')
+        self.bn2 = nn.BatchNorm2d(64)
+        self.relu2 = nn.ReLU()
+        
+        self.pool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.drop1 = nn.Dropout(0.25)
+
+        self.conv3 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding='same')
+        self.bn3 = nn.BatchNorm2d(64)
+        self.relu3 = nn.ReLU()
+        
+        self.conv4 = nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, padding='same')
+        self.bn4 = nn.BatchNorm2d(32)
+        self.relu4 = nn.ReLU()
+        
+        self.pool2 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.drop2 = nn.Dropout(0.25)
+
+        self.conv5 = nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, padding='same')
+        self.bn5 = nn.BatchNorm2d(32)
+        self.relu5 = nn.ReLU()
+        
+        self.conv6 = nn.Conv2d(in_channels=32, out_channels=16, kernel_size=3, padding='same')
+        self.bn6 = nn.BatchNorm2d(16)
+        self.relu6 = nn.ReLU()
+        
+        self.pool3 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.drop3 = nn.Dropout(0.25)
+
+        self.fc1 = nn.Linear(in_features=16*2*8, out_features=256)
+        self.bn_fc1 = nn.BatchNorm1d(256)
+        self.drop4 = nn.Dropout(0.1)
+        self.fc2 = nn.Linear(in_features=256, out_features=numclass)
+        
+        self.bic = BiCLayer(numclass)
+
+    def forward(self, x):
+        x = self.relu1(self.bn1(self.conv1(x)))
+        x = self.relu2(self.bn2(self.conv2(x)))
+        x = self.pool1(x)
+        x = self.drop1(x)
+
+        x = self.relu3(self.bn3(self.conv3(x)))
+        x = self.relu4(self.bn4(self.conv4(x)))
+        x = self.pool2(x)
+        x = self.drop2(x)
+
+        x = self.relu5(self.bn5(self.conv5(x)))
+        x = self.relu6(self.bn6(self.conv6(x)))
+        x = self.pool3(x)
+        x = self.drop3(x)
+
+        x = torch.flatten(x, start_dim=1)
+        x = self.bn_fc1(F.relu(self.fc1(x)))
+        x = self.drop4(x)
+        x = self.fc2(x)
+
+        x = self.bic(x)
+        return x
 
 class ETC_CNN2(nn.Module):
     def __init__(self, num_classes=3):
@@ -219,8 +286,8 @@ class ETC_CNN1D(nn.Module):
         self.bn4 = nn.BatchNorm1d(512)
         self.drop2 = nn.Dropout(0.3)  # Dropout sau conv4
 
-        final_feature_map_size = 1280 // 4  # Sau 2 lớp MaxPool1d
-        self.fc1 = nn.Linear(512 * final_feature_map_size, 256)
+        #final_feature_map_size = 1280 // 4  # Sau 2 lớp MaxPool1d
+        self.fc1 = nn.Linear(512 , 256)
         self.bn_fc = nn.BatchNorm1d(256)
         self.drop_fc = nn.Dropout(0.5)  # Dropout trước FC2
         self.fc2 = nn.Linear(256, output_size)
@@ -237,7 +304,8 @@ class ETC_CNN1D(nn.Module):
         x = self.pool(F.relu(self.bn4(self.conv4(x))))
         x = self.drop2(x)  # Áp dụng Dropout sau MaxPool1d
 
-        x = x.view(x.size(0), -1)
+        x = x.view(x.size(0), 512, -1)  # Tính toán kích thước động
+        x = torch.flatten(x, start_dim=1)
         x = F.relu(self.bn_fc(self.fc1(x)))
         x = self.drop_fc(x)  # Áp dụng Dropout trước FC2
         x = self.fc2(x)

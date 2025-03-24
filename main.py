@@ -111,7 +111,7 @@ def main():
     min_available_clients=5
 
     #dataset viet thuong het  :V
-    dataset_list = ['mnist', 'cifar10', 'etc']
+    dataset_list = ['mnist', 'cifar10', 'etc64', 'etc256']
     assert args.dataset in dataset_list, 'Choose a dataset that exist.'
 
     model_dict = {'CNN1': CNN1, 

@@ -62,9 +62,15 @@ def load_data(dataset: str):
         trainset = MNIST('dataset/mnist', split='balanced', train=True, download=True, transform=transform)
         testset = MNIST('dataset/mnist', split='balanced', train=False, download=True, transform=transform)
 
-    elif dataset == 'etc':
+    elif dataset == 'etc64':
         #gquic data with additinal data 
         file_path = os.path.join(os.getcwd(), "dataset", "ETC", "etc_tensor_fl_data.pkl")
+        with open(file_path, "rb") as f:
+            loaded_dataset = pickle.load(f)
+        trainset = {k: v for k, v in loaded_dataset.items() if k != "test"}
+        testset = loaded_dataset['test']
+    elif dataset == 'etc256':
+        file_path = os.path.join(os.getcwd(), "dataset", "ETC", "etc_tensor_fl_data_256.pkl")
         with open(file_path, "rb") as f:
             loaded_dataset = pickle.load(f)
         trainset = {k: v for k, v in loaded_dataset.items() if k != "test"}

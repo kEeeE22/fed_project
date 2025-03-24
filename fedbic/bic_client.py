@@ -53,8 +53,9 @@ class BiCClient(BaselineClient):
         # Deserialize parameters to NumPy ndarray's
         parameters_original = ins.parameters
         ndarrays_original = parameters_to_ndarrays(parameters_original)
-
-
+        
+        #neu dung biclayer de eval thi them dong nay
+        ndarrays_original.append(self.bic_params_client)
         # bic_path = f"bic_layer_client_{self.partition_id}.pt"
         # if self.bic_prams is None and os.path.exists(bic_path):
         #   self.bic_prams = torch.load(bic_path)
