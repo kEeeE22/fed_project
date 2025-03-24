@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 
 from utils.utils1 import train, get_parameters
 from utils.load_data import load_data, dirichlet_data, shard_data
-from utils.model import CNN1, ETC_CNN, ResNet50, ETC_CNN2, ETC_CNN3, ETC_RESNET18, ETC_CNN1D
+from utils.model import CNN1, ETC_CNN, ResNet50, ETC_CNN2, ETC_CNN3, ETC_RESNET18, ETC_CNN1D, ETC_CNN_0_1
 
 from fedbic.bic_client import BiCClient
 from fedbic.bic_strategy import FedBic
@@ -111,21 +111,39 @@ def main():
     min_available_clients=5
 
     #dataset viet thuong het  :V
-    dataset_list = ['mnist', 'cifar10', 'etc64', 'etc256']
+    dataset_list = ['mnist', 'cifar10', 'etc', 'etc256']
     assert args.dataset in dataset_list, 'Choose a dataset that exist.'
 
+
+
+    #MODEL
     model_dict = {'CNN1': CNN1, 
                   'ETC_CNN': ETC_CNN, 
                   'RESNET50': ResNet50, 
                   'ETC_CNN2': ETC_CNN2, 
                   'ETC_CNN3': ETC_CNN3, 
                   'ETC_RESNET18': ETC_RESNET18, 
-                  'ETC_CNN1D': ETC_CNN1D}
+                  'ETC_CNN1D': ETC_CNN1D,
+                  'ETC_CNN_0_1': ETC_CNN_0_1}
     assert args.sys_model in model_dict, 'Choose a model that exist'
+
+
+
+
 
     random.seed(args.sys_i_seed)
     torch.manual_seed(args.sys_i_seed)
     np.random.seed(args.sys_i_seed)
+
+
+    os.makedirs("results", exist_ok=True)
+    # file
+    avg_file = f"results/avg_{args.method}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv"
+    client_file = f'results/client_{args.method}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
+    server_file = f'results/server_{args.method}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
+
+
+
 
     start_time = time.time()
     if args.dataset == "etc":
@@ -136,11 +154,6 @@ def main():
         ids, labels = shard_data(train_set, args.n_client, args.num_shard)
     log_time("Data partitioning", start_time)
 
-    os.makedirs("results", exist_ok=True)
-    # file
-    avg_file = f"results/avg_{args.method}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv"
-    client_file = f'results/client_{args.method}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
-    server_file = f'results/server_{args.method}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
 
     start_time = time.time()
     trainloaders = []
@@ -186,6 +199,11 @@ def main():
             valloaders.append(DataLoader(Subset(train_set, val_indices), batch_size=64, shuffle=False))
         server_test = DataLoader(test_set, batch_size=64, shuffle=False)
     log_time("DataLoader initialization", start_time)
+
+
+
+
+
 
 
     start_time = time.time()
