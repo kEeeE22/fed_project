@@ -209,16 +209,16 @@ def main():
     start_time = time.time()
     #choose method
     if args.method == 'FedBic':
-        bic_params = []
-        for i in range(args.n_client):
-            net = model_dict[args.sys_model]().to(DEVICE)
-            train(net, trainloaders[i], epochs=args.phase_1_client_epochs, lr=args.phase_1_client_lr)
+        # bic_params = []
+        # for i in range(args.n_client):
+        #     net = model_dict[args.sys_model]().to(DEVICE)
+        #     train(net, trainloaders[i], epochs=args.phase_1_client_epochs, lr=args.phase_1_client_lr)
 
-            bic_ = get_parameters(net)
-            bic_arrays = bic_[-1]
-            #bic_arrays = parameters_to_ndarrays(bic_)
-            bic_params.append(bic_arrays)
-            print('Done append bic params client ' + str(i))
+        #     bic_ = get_parameters(net)
+        #     bic_arrays = bic_[-1]
+        #     #bic_arrays = parameters_to_ndarrays(bic_)
+        #     bic_params.append(bic_arrays)
+        #     print('Done append bic params client ' + str(i))
 
         def client_fn(context: Context) -> Client:
             net = model_dict[args.sys_model]().to(DEVICE)
@@ -230,8 +230,9 @@ def main():
             client_lr = args.client_lr
             #epochs = random.randint(1,5)
             #epochs = client_epochs.get(f"client_{partition_id}", 1)
-            bic_params_client = bic_params[partition_id]
-            return BiCClient(partition_id, net, trainloader, valloader, epochs,client_lr, bic_params_client).to_client()
+            #bic_params_client = bic_params[partition_id]
+            num_rounds = args.num_round
+            return BiCClient(partition_id, net, trainloader, valloader, epochs,client_lr, num_rounds).to_client()
 
 
         # Create the ClientApp

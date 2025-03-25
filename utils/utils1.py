@@ -105,6 +105,55 @@ def train(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
           print("Dừng sớm do không cải thiện!")
           break
 
+def trainbic(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
+    """Train the network on the training set."""
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    early_stopping = EarlyStopping(patience=5, min_delta=0.0002, verbose=False)
+    global_params = copy.deepcopy(net).parameters()
+
+    if frozen:
+      for name, param in net.named_parameters():
+        if "bic" not in name:
+            param.requires_grad = False
+      optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=lr)
+    #training
+    net.train()
+    for epoch in range(epochs):
+        total_loss, correct, total_samples = 0.0, 0, 0
+        for images, labels in trainloader:
+          #images, labels = batch["img"], batch["label"]
+          images, labels = images.to(DEVICE), labels.to(DEVICE)
+
+          optimizer.zero_grad()
+          outputs = net(images)
+          if proximal_mu != None:
+            proximal_term = 0.0
+            for local_weights, global_weights in zip(net.parameters(), global_params):
+                proximal_term += (local_weights - global_weights).norm(2)
+            loss = criterion(outputs, labels) + (proximal_mu / 2) * proximal_term
+          else:
+            loss = criterion(outputs, labels)
+
+          loss.backward()
+          optimizer.step()
+
+          # Tính loss
+          total_loss += loss.item()
+
+          # Tính accuracy
+          _, preds = torch.max(outputs, 1)
+          correct += (preds == labels).sum().item()
+          total_samples += labels.size(0)
+
+        epoch_loss = total_loss / total_samples
+        epoch_acc = correct / total_samples
+        print(f"Epoch {epoch+1}: train loss {epoch_loss}, accuracy {epoch_acc}")
+
+        early_stopping(epoch_loss)
+        if early_stopping.early_stop:
+          print("Dừng sớm do không cải thiện!")
+          break
 
 def test(net,testloader):
     """Evaluate the network on the entire test set."""
