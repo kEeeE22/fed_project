@@ -66,7 +66,7 @@ def train(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
       for name, param in net.named_parameters():
         if "bic" in name:
             param.requires_grad = False
-      optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=lr)
+      optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=lr)
     #training
     net.train()
     for epoch in range(epochs):
@@ -118,7 +118,7 @@ def trainbic(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
                 param.requires_grad = False
         net.bic.alpha.requires_grad = True
         net.bic.beta.requires_grad = True
-        optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=lr)
+        optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=lr)
 
     #training
     net.train()
