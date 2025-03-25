@@ -26,8 +26,13 @@ class BiCClient(BaselineClient):
         set_parameters(self.net, ndarrays_original)
 
         train(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
+        
         if(ins.config.get("server_round") == self.num_rounds):
+            param = get_parameters(self.net)
+            param.append(self.bic_prams)
+            set_parameters(self.net, param)
             trainbic(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
+            
         #lay tham so
         modelr_ndarrays = get_parameters(self.net)
         # self.bic_prams = modelr_ndarrays[-1]
@@ -35,10 +40,7 @@ class BiCClient(BaselineClient):
         # print(f"[Client {self.partition_id}] Saved BiC Layer to {bic_path}")
         model_ndarrays = modelr_ndarrays[:-1]
 
-        #%
         self.bic_prams = modelr_ndarrays[-1]
-
-
         parameters_updated = ndarrays_to_parameters(model_ndarrays)
 
         status = Status(code=Code.OK, message="Success")
@@ -57,7 +59,7 @@ class BiCClient(BaselineClient):
         ndarrays_original = parameters_to_ndarrays(parameters_original)
 
         #%
-        if self.bic_prams is not None:
+        if ins.config.get("server_round") == self.num_rounds:
             print('Add bic layer in last round')
             ndarrays_original.append(self.bic_prams)
         # #neu dung biclayer de eval thi them dong nay

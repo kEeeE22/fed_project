@@ -249,7 +249,6 @@ class ETC_CNN3(nn.Module):
         x = self.bic(x)
         return x
     
-
 class ETC_RESNET18(nn.Module):
     def __init__(self, num_classes=3):
         super(ETC_RESNET18, self).__init__()
