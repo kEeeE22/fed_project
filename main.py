@@ -19,6 +19,7 @@ from utils.model import CNN1, ETC_CNN, ResNet50, ETC_CNN2, ETC_CNN3, ETC_RESNET1
 
 from fedbic.bic_client import BiCClient
 from fedbic.bic_strategy import FedBic
+from fedbic.old_bic_client import OLD_BiCClient
 
 from baseline.avg_strategy import FedAvg, weighted_average
 from baseline.client import BaselineClient
@@ -73,7 +74,7 @@ def fed_args():
     parser.add_argument('-ns', '--num-shard', type=int, help='Number of shard')
     args = parser.parse_args()
 
-    if args.method.lower() == "fedbic":
+    if args.method.lower() == "oldfedbic":
         if args.phase_1_client_epochs is None or args.phase_1_client_lr is None:
             parser.error("Arguments -p1-eps and -p1-lr are required when method is 'fedbic'")
     if args.method.lower() == 'fedprox':
@@ -209,17 +210,6 @@ def main():
     start_time = time.time()
     #choose method
     if args.method == 'FedBic':
-        # bic_params = []
-        # for i in range(args.n_client):
-        #     net = model_dict[args.sys_model]().to(DEVICE)
-        #     train(net, trainloaders[i], epochs=args.phase_1_client_epochs, lr=args.phase_1_client_lr)
-
-        #     bic_ = get_parameters(net)
-        #     bic_arrays = bic_[-1]
-        #     #bic_arrays = parameters_to_ndarrays(bic_)
-        #     bic_params.append(bic_arrays)
-        #     print('Done append bic params client ' + str(i))
-
         def client_fn(context: Context) -> Client:
             net = model_dict[args.sys_model]().to(DEVICE)
             partition_id = context.node_config["partition-id"]
@@ -233,6 +223,57 @@ def main():
             #bic_params_client = bic_params[partition_id]
             num_rounds = args.num_round
             return BiCClient(partition_id, net, trainloader, valloader, epochs,client_lr, num_rounds).to_client()
+
+        # Create the ClientApp
+        client = ClientApp(client_fn=client_fn)
+
+        def server_fn(context: Context) -> ServerAppComponents:
+        # Configure the server for num_rounds rounds of training
+            config = ServerConfig(num_rounds=args.num_round)
+            strategy = FedBic(
+                fraction_fit=fraction_fit,
+                fraction_evaluate=fraction_evaluate,
+                min_fit_clients=min_fit_clients,
+                min_evaluate_clients=min_evaluate_clients,
+                min_available_clients=min_available_clients,
+                evaluate_metrics_aggregation_fn=weighted_average,
+                testloader = server_test,
+                net = model_dict[args.sys_model](),
+                server_file = server_file,
+                client_file = client_file,
+                avg_file = avg_file
+            )
+            return ServerAppComponents(config=config, strategy = strategy)
+
+
+        # Create ServerApp
+        server = ServerApp(server_fn=server_fn)
+    elif args.method == 'oldFedBic':
+        bic_params = []
+        for i in range(args.n_client):
+            net = model_dict[args.sys_model]().to(DEVICE)
+            train(net, trainloaders[i], epochs=args.phase_1_client_epochs, lr=args.phase_1_client_lr)
+
+            bic_ = get_parameters(net)
+            bic_arrays = bic_[-1]
+            #bic_arrays = parameters_to_ndarrays(bic_)
+            bic_params.append(bic_arrays)
+            print('Done append bic params client ' + str(i))
+
+        def client_fn(context: Context) -> Client:
+            net = model_dict[args.sys_model]().to(DEVICE)
+            partition_id = context.node_config["partition-id"]
+            num_partitions = args.n_client
+            trainloader = trainloaders[partition_id]
+            valloader = valloaders[partition_id]
+            epochs = args.client_epochs
+            client_lr = args.client_lr
+            #epochs = random.randint(1,5)
+            #epochs = client_epochs.get(f"client_{partition_id}", 1)
+            #bic_params_client = bic_params[partition_id]
+            bic_params_client = bic_params[partition_id]
+            mode = 'w'
+            return OLD_BiCClient(partition_id, net, trainloader, valloader, epochs,client_lr, bic_params_client, mode).to_client()
 
 
         # Create the ClientApp
