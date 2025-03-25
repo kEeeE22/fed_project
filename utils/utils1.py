@@ -117,7 +117,7 @@ def trainbic(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
             if "bic" not in name:
                 param.requires_grad = False
         net.bic.alpha.requires_grad = True
-        net.bic.alpha.requires_grad = False
+        net.bic.beta.requires_grad = True
         optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, net.parameters()), lr=lr)
 
     #training
