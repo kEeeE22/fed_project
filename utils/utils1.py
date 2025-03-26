@@ -109,7 +109,7 @@ def trainbic(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
     """Train the network on the training set."""
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters(), lr=lr)
-    early_stopping = EarlyStopping(patience=5, min_delta=0.0002, verbose=False)
+    #early_stopping = EarlyStopping(patience=5, min_delta=0.0002, verbose=False)
     global_params = copy.deepcopy(net).parameters()
 
     if frozen:
@@ -153,10 +153,10 @@ def trainbic(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
         epoch_acc = correct / total_samples
         print(f"Epoch {epoch+1}: train loss {epoch_loss}, accuracy {epoch_acc}")
 
-        early_stopping(epoch_loss)
-        if early_stopping.early_stop:
-          print("Dừng sớm do không cải thiện!")
-          break
+        # early_stopping(epoch_loss)
+        # if early_stopping.early_stop:
+        #   print("Dừng sớm do không cải thiện!")
+        #   break
 
 def test(net,testloader):
     """Evaluate the network on the entire test set."""
