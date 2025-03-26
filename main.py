@@ -203,10 +203,6 @@ def main():
 
 
 
-
-
-
-
     start_time = time.time()
     #choose method
     if args.method == 'FedBic':
@@ -249,32 +245,40 @@ def main():
         # Create ServerApp
         server = ServerApp(server_fn=server_fn)
     elif args.method == 'oldFedBic':
-        bic_params = []
-        for i in range(args.n_client):
-            net = model_dict[args.sys_model]().to(DEVICE)
-            train(net, trainloaders[i], epochs=args.phase_1_client_epochs, lr=args.phase_1_client_lr)
+        # bic_params = []
+        # for i in range(args.n_client):
+        #     net = model_dict[args.sys_model]().to(DEVICE)
+        #     train(net, trainloaders[i], epochs=args.phase_1_client_epochs, lr=args.phase_1_client_lr)
 
-            bic_ = get_parameters(net)
-            bic_arrays = bic_[-1]
-            #bic_arrays = parameters_to_ndarrays(bic_)
-            bic_params.append(bic_arrays)
-            print('Done append bic params client ' + str(i))
+        #     bic_ = get_parameters(net)
+        #     bic_arrays = bic_[-1]
+        #     #bic_arrays = parameters_to_ndarrays(bic_)
+        #     bic_params.append(bic_arrays)
+        #     print('Done append bic params client ' + str(i))
 
+        # def client_fn(context: Context) -> Client:
+        #     net = model_dict[args.sys_model]().to(DEVICE)
+        #     partition_id = context.node_config["partition-id"]
+        #     num_partitions = args.n_client
+        #     trainloader = trainloaders[partition_id]
+        #     valloader = valloaders[partition_id]
+        #     epochs = args.client_epochs
+        #     client_lr = args.client_lr
+        #     #epochs = random.randint(1,5)
+        #     #epochs = client_epochs.get(f"client_{partition_id}", 1)
+        #     #bic_params_client = bic_params[partition_id]
+        #     bic_params_client = bic_params[partition_id]
+        #     mode = 'w'
+        #     return OLD_BiCClient(partition_id, net, trainloader, valloader, epochs,client_lr, bic_params_client, mode).to_client()
         def client_fn(context: Context) -> Client:
             net = model_dict[args.sys_model]().to(DEVICE)
-            partition_id = context.node_config["partition-id"]
+            partition_id = context.node_config['partition-id']
             num_partitions = args.n_client
             trainloader = trainloaders[partition_id]
             valloader = valloaders[partition_id]
             epochs = args.client_epochs
             client_lr = args.client_lr
-            #epochs = random.randint(1,5)
-            #epochs = client_epochs.get(f"client_{partition_id}", 1)
-            #bic_params_client = bic_params[partition_id]
-            bic_params_client = bic_params[partition_id]
-            mode = 'w'
-            return OLD_BiCClient(partition_id, net, trainloader, valloader, epochs,client_lr, bic_params_client, mode).to_client()
-
+            return OLD_BiCClient(partition_id, net, trainloader, valloader, epochs, client_lr).to_client()
 
         # Create the ClientApp
         client = ClientApp(client_fn=client_fn)

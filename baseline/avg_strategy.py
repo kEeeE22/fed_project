@@ -113,7 +113,8 @@ class FedAvg(Strategy):
         clients = client_manager.sample(
             num_clients=sample_size, min_num_clients=min_num_clients
         )
-        return [(client, EvaluateIns(parameters, {})) for client in clients]
+        standard_config = {"server_round": server_round}
+        return [(client, EvaluateIns(parameters, standard_config)) for client in clients]
 
     def aggregate_evaluate(
         self,
