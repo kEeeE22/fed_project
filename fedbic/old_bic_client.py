@@ -26,6 +26,7 @@ class OLD_BiCClient(BaselineClient):
         ndarrays_original = parameters_to_ndarrays(parameters_original)
 
         if self.bic_params is not None:
+            print("[INFO] Add bic.")
             ndarrays_original.append(self.bic_params)
 
         set_parameters(self.net, ndarrays_original)

@@ -58,7 +58,7 @@ def set_parameters(net, parameters: List[np.ndarray]):
 def train(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
     """Train the network on the training set."""
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9)
     early_stopping = EarlyStopping(patience=5, min_delta=0.0002, verbose=False)
     global_params = copy.deepcopy(net).parameters()
 
@@ -108,7 +108,7 @@ def train(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
 def trainbic(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
     """Train the network on the training set."""
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(net.parameters(), lr=lr)
+    optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9)
     #early_stopping = EarlyStopping(patience=5, min_delta=0.0002, verbose=False)
     global_params = copy.deepcopy(net).parameters()
 
