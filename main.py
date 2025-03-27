@@ -206,7 +206,7 @@ def main():
     start_time = time.time()
     #choose method
     if args.method == 'FedBic':
-        if args.mode == 'wb' or args.mode == 'nonwb':
+        if args.bic_mode == 'wb' or args.bic_mode == 'nonwb':
             bic_params = []
             for i in range(args.n_client):
                 net = model_dict[args.sys_model]().to(DEVICE)
@@ -228,10 +228,10 @@ def main():
             client_lr = args.client_lr
             num_rounds = args.num_round
             mode = args.bic_mode
-            if args.mode == 'wb' or args.mode == 'nonwb':
+            if args.bic_mode == 'wb' or args.bic_mode == 'nonwb':
                 bic_params_client = bic_params[partition_id]
                 return WB_BiCClient(partition_id, net, trainloader, valloader, epochs, client_lr, bic_params_client, mode).to_client()
-            elif args.mode == 'er' or args.mode == 'lr':
+            elif args.bic_mode == 'er' or args.bic_mode == 'lr':
                 return BiCClient(partition_id, net, trainloader, valloader, epochs,client_lr, num_rounds, mode).to_client()
 
         # Create the ClientApp
