@@ -4,6 +4,7 @@ import random
 import numpy as np
 import os
 import time
+import pickle
 from torch.utils.data import DataLoader, Subset, TensorDataset
 
 from flwr.client import Client, ClientApp
@@ -20,6 +21,7 @@ from utils.model import CNN1, ETC_CNN, ResNet50, ETC_CNN2, ETC_CNN3, ETC_RESNET1
 from fedbic.bic_client import BiCClient
 from fedbic.bic_strategy import FedBic
 from fedbic.old_bic_client import OLD_BiCClient
+from fedbic.wb_bic_client import WB_BiCClient
 
 from baseline.avg_strategy import FedAvg, weighted_average
 from baseline.client import BaselineClient
@@ -61,7 +63,7 @@ def fed_args():
     #phase 1 // chi can neu method la FedBic
     parser.add_argument('-p1-eps', '--phase-1-client-epochs', type=int, help='BiC training epochs')
     parser.add_argument('-p1-lr', '--phase-1-client-lr',type=float, help='BiC training learning rate')
-
+    parser.add_argument('-mode', '--bic_mode', type=str, help='Mode for BiCClient')
     #mu cang cao cang khac fedavg
     parser.add_argument('-mu', '--proximal-mu', type=float, help='proximal mu for fedprox')
 
@@ -130,8 +132,6 @@ def main():
 
 
 
-
-
     random.seed(args.sys_i_seed)
     torch.manual_seed(args.sys_i_seed)
     np.random.seed(args.sys_i_seed)
@@ -142,7 +142,7 @@ def main():
     avg_file = f"results/avg_{args.method}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv"
     client_file = f'results/client_{args.method}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
     server_file = f'results/server_{args.method}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
-
+    global_model_file = f'results/global_model_{args.method}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.pth'
 
 
 
@@ -206,6 +206,18 @@ def main():
     start_time = time.time()
     #choose method
     if args.method == 'FedBic':
+        if args.mode == 'wb' or args.mode == 'nonwb':
+            bic_params = []
+            for i in range(args.n_client):
+                net = model_dict[args.sys_model]().to(DEVICE)
+                train(net, trainloaders[i], epochs=args.phase_1_client_epochs, lr=args.phase_1_client_lr)
+
+                bic_ = get_parameters(net)
+                bic_arrays = bic_[-1]
+                #bic_arrays = parameters_to_ndarrays(bic_)
+                bic_params.append(bic_arrays)
+                print('Done append bic params client ' + str(i))
+
         def client_fn(context: Context) -> Client:
             net = model_dict[args.sys_model]().to(DEVICE)
             partition_id = context.node_config["partition-id"]
@@ -214,11 +226,13 @@ def main():
             valloader = valloaders[partition_id]
             epochs = args.client_epochs
             client_lr = args.client_lr
-            #epochs = random.randint(1,5)
-            #epochs = client_epochs.get(f"client_{partition_id}", 1)
-            #bic_params_client = bic_params[partition_id]
             num_rounds = args.num_round
-            return BiCClient(partition_id, net, trainloader, valloader, epochs,client_lr, num_rounds).to_client()
+            mode = args.bic_mode
+            if args.mode == 'wb' or args.mode == 'nonwb':
+                bic_params_client = bic_params[partition_id]
+                return WB_BiCClient(partition_id, net, trainloader, valloader, epochs, client_lr, bic_params_client, mode).to_client()
+            elif args.mode == 'er' or args.mode == 'lr':
+                return BiCClient(partition_id, net, trainloader, valloader, epochs,client_lr, num_rounds, mode).to_client()
 
         # Create the ClientApp
         client = ClientApp(client_fn=client_fn)
@@ -245,31 +259,7 @@ def main():
         # Create ServerApp
         server = ServerApp(server_fn=server_fn)
     elif args.method == 'oldFedBic':
-        # bic_params = []
-        # for i in range(args.n_client):
-        #     net = model_dict[args.sys_model]().to(DEVICE)
-        #     train(net, trainloaders[i], epochs=args.phase_1_client_epochs, lr=args.phase_1_client_lr)
 
-        #     bic_ = get_parameters(net)
-        #     bic_arrays = bic_[-1]
-        #     #bic_arrays = parameters_to_ndarrays(bic_)
-        #     bic_params.append(bic_arrays)
-        #     print('Done append bic params client ' + str(i))
-
-        # def client_fn(context: Context) -> Client:
-        #     net = model_dict[args.sys_model]().to(DEVICE)
-        #     partition_id = context.node_config["partition-id"]
-        #     num_partitions = args.n_client
-        #     trainloader = trainloaders[partition_id]
-        #     valloader = valloaders[partition_id]
-        #     epochs = args.client_epochs
-        #     client_lr = args.client_lr
-        #     #epochs = random.randint(1,5)
-        #     #epochs = client_epochs.get(f"client_{partition_id}", 1)
-        #     #bic_params_client = bic_params[partition_id]
-        #     bic_params_client = bic_params[partition_id]
-        #     mode = 'w'
-        #     return OLD_BiCClient(partition_id, net, trainloader, valloader, epochs,client_lr, bic_params_client, mode).to_client()
         def client_fn(context: Context) -> Client:
             net = model_dict[args.sys_model]().to(DEVICE)
             partition_id = context.node_config['partition-id']
