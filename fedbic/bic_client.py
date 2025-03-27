@@ -29,14 +29,12 @@ class BiCClient(BaselineClient):
         ndarrays_original = parameters_to_ndarrays(parameters_original)
 
         set_parameters(self.net, ndarrays_original)
-
+        if self.mode == 'er':
+            #chi train lop bic
+            print('Train BiC layer')
+            trainbic(self.net, self.trainloader, epochs=5, lr=0.001, frozen=True)
+        print('Train model')
         train(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
-        
-        # if(ins.config.get("server_round") == self.num_rounds):
-        #     param = get_parameters(self.net)
-        #     param.append(self.bic_prams)
-        #     set_parameters(self.net, param)
-        #     trainbic(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
             
         #lay tham so
         modelr_ndarrays = get_parameters(self.net)
@@ -58,8 +56,6 @@ class BiCClient(BaselineClient):
     
     def evaluate(self, ins: EvaluateIns) -> EvaluateRes:
         print(f"[Client {self.partition_id}] evaluate, config: {ins.config}")
-        #print(f"[DEBUG] ins.parameters: {ins.parameters}")
-        # Deserialize parameters to NumPy ndarray's
         parameters_original = ins.parameters
         ndarrays_original = parameters_to_ndarrays(parameters_original)
         set_parameters(self.net, ndarrays_original)
@@ -70,25 +66,10 @@ class BiCClient(BaselineClient):
         if self.mode == 'lr':
             if(ins.config.get("server_round") == self.num_rounds):
                 trainbic(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
-        elif self.mode == 'er':
-            trainbic(self.net, self.trainloader, 5, 0.001, frozen=True)
-        # #neu dung biclayer de eval thi them dong nay
-        # ndarrays_original.append(self.bic_params_client)
-        # bic_path = f"bic_layer_client_{self.partition_id}.pt"
-        # if self.bic_prams is None and os.path.exists(bic_path):
-        #   self.bic_prams = torch.load(bic_path)
-        # print(f"[Client {self.partition_id}] Load BiC Layer to {bic_path}")
-
-        # if self.bic_prams is not None:
-        #   #set_parameters(self.net, self.bic_prams)
-        #   ndarrays_original.append(self.bic_prams)
-
-        # else:
-        #   print("[WARNING] self.bic_prams is None! Skipping update for BiC Layer.")
-        #   print(self.bic_prams)
+        # elif self.mode == 'er':
+        #     trainbic(self.net, self.trainloader, 5, 0.01, frozen=True)
         
         loss, accuracy, precision, recall, f1_score = test_2_server(self.net, self.valloader)
-
 
         # Build and return response
         status = Status(code=Code.OK, message="Success")

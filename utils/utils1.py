@@ -66,6 +66,8 @@ def train(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
       for name, param in net.named_parameters():
         if "bic" in name:
             param.requires_grad = False
+        if 'bic' not in name:
+            param.requires_grad = True
       optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=lr)
     #training
     net.train()
