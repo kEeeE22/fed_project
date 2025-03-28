@@ -27,7 +27,8 @@ class BiCClient(BaselineClient):
 
         parameters_original = ins.parameters
         ndarrays_original = parameters_to_ndarrays(parameters_original)
-
+        if self.bic_prams is not None:
+            ndarrays_original.append(self.bic_prams)
         set_parameters(self.net, ndarrays_original)
         if self.mode == 'er':
             #chi train lop bic
@@ -43,7 +44,7 @@ class BiCClient(BaselineClient):
         # print(f"[Client {self.partition_id}] Saved BiC Layer to {bic_path}")
         model_ndarrays = modelr_ndarrays[:-1]
 
-        #self.bic_prams = modelr_ndarrays[-1]
+        self.bic_prams = modelr_ndarrays[-1]
         parameters_updated = ndarrays_to_parameters(model_ndarrays)
 
         status = Status(code=Code.OK, message="Success")

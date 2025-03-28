@@ -39,6 +39,8 @@ class FedAvg(Strategy):
         server_file = None,
         client_file = None,
         avg_file = None,
+        model_file = None,
+        num_rounds = 100,
     ) -> None:
         super().__init__()
         self.fraction_fit = fraction_fit
@@ -52,6 +54,8 @@ class FedAvg(Strategy):
         self.server_file = server_file
         self.client_file = client_file
         self.avg_file = avg_file
+        self.model_file = model_file
+        self.num_rounds = num_rounds    
     def __repr__(self) -> str:
         return "FedAvg"
 
@@ -99,6 +103,9 @@ class FedAvg(Strategy):
 
         #final_params = get_parameters(net)
         final_params = ndarrays_to_parameters(array_param)
+        if server_round == self.total_rounds:
+            torch.save(array_param, "global_model_final.pt")
+            print(f"Saved final global model at round {server_round} to global_model_final.pt")
         return final_params, {}
 
 

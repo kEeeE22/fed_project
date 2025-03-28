@@ -251,7 +251,9 @@ def main():
                 net = model_dict[args.sys_model](),
                 server_file = server_file,
                 client_file = client_file,
-                avg_file = avg_file
+                avg_file = avg_file,
+                model_file = global_model_file,
+                num_rounds = args.num_round,
             )
             return ServerAppComponents(config=config, strategy = strategy)
 
@@ -287,7 +289,9 @@ def main():
                 net = model_dict[args.sys_model](),
                 server_file = server_file,
                 client_file = client_file,
-                avg_file = avg_file
+                avg_file = avg_file,
+                model_file = global_model_file,
+                num_rounds = args.num_round,
             )
             return ServerAppComponents(config=config, strategy = strategy)
 
@@ -325,7 +329,9 @@ def main():
                 net = model_dict[args.sys_model](),
                 server_file = server_file,
                 client_file = client_file,
-                avg_file = avg_file
+                avg_file = avg_file,
+                model_file = global_model_file,
+                num_rounds = args.num_round,
             )
             return ServerAppComponents(config=config, strategy = strategy)
 
@@ -364,7 +370,9 @@ def main():
                 net = model_dict[args.sys_model](),
                 server_file = server_file,
                 client_file = client_file,
-                avg_file = avg_file
+                avg_file = avg_file,
+                model_file = global_model_file,
+                num_rounds = args.num_round,
             )
             return ServerAppComponents(config=config, strategy = strategy)
 
@@ -403,7 +411,9 @@ def main():
                 server_file = server_file,
                 client_file = client_file,
                 avg_file = avg_file,
-                proximal_mu = args.proximal_mu
+                proximal_mu = args.proximal_mu,
+                model_file = global_model_file,
+                num_rounds = args.num_round,
             )
             return ServerAppComponents(config=config, strategy = strategy)
 
