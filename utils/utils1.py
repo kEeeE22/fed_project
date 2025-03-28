@@ -210,3 +210,35 @@ def test_2_server(net, testloader):
     df = pd.DataFrame(report_dict).transpose()
 
     return loss, accuracy, report_dict['macro avg']['precision'], report_dict['macro avg']['recall'], report_dict['macro avg']['f1-score']
+
+
+def test_3_server(net, testloader):
+    net.to(DEVICE)
+    criterion = torch.nn.CrossEntropyLoss()
+    correct, total, loss = 0, 0, 0.0
+    all_labels = []
+    all_preds = []
+
+    net.eval()
+    with torch.no_grad():
+        for images, labels in testloader:
+            #images, labels = batch["img"], batch["label"]
+            images, labels = images.to(DEVICE), labels.to(DEVICE)
+            outputs = net(images)
+            loss += criterion(outputs, labels).item()
+
+            _, predicted = torch.max(outputs.data, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+            all_labels.extend(labels.cpu().numpy())  
+            all_preds.extend(predicted.cpu().numpy())  
+
+    loss /= len(testloader)
+    accuracy = correct / total
+
+    # Tạo classification report
+    report_dict = classification_report(all_labels, all_preds, output_dict=True, zero_division=1)
+    df = pd.DataFrame(report_dict).transpose()
+
+    return df, loss

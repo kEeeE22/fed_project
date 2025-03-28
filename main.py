@@ -14,7 +14,7 @@ from flwr.simulation import run_simulation
 
 from sklearn.model_selection import train_test_split 
 
-from utils.utils1 import train, get_parameters
+from utils.utils1 import train, get_parameters, test_3_server, trainbic
 from utils.load_data import load_data, dirichlet_data, shard_data
 from utils.model import CNN1, ETC_CNN, ResNet50, ETC_CNN2, ETC_CNN3, ETC_RESNET18, ETC_CNN1D, ETC_CNN_0_1
 
@@ -438,7 +438,15 @@ def main():
     
     log_time("Total execution", total_start_time)
     log_file.close()
+    model = model_dict[args.sys_model]().to(DEVICE)
+    model.load_state_dict(torch.load(global_model_file))
+    if args.method == 'FedBic' and args.mode == 'er':
+        trainbic(model, server_test, 5, 0.01, frozen=True)
+    model.eval()
 
+    df, loss = test_3_server(model, server_test)
+    print(f"Test loss: {loss}")
+    print(df)
 if __name__ == '__main__':
     main()
 
