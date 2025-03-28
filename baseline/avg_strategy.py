@@ -103,7 +103,7 @@ class FedAvg(Strategy):
 
         #final_params = get_parameters(net)
         final_params = ndarrays_to_parameters(array_param)
-        if server_round == self.total_rounds:
+        if server_round == self.num_rounds:
             torch.save(array_param, "global_model_final.pt")
             print(f"Saved final global model at round {server_round} to global_model_final.pt")
         return final_params, {}

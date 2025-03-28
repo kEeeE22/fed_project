@@ -232,6 +232,7 @@ def main():
                 bic_params_client = bic_params[partition_id]
                 return WB_BiCClient(partition_id, net, trainloader, valloader, epochs, client_lr, bic_params_client, mode).to_client()
             elif args.bic_mode == 'er' or args.bic_mode == 'lr':
+                #bic epochs default = 5 lr = 0.001
                 return BiCClient(partition_id, net, trainloader, valloader, epochs,client_lr, num_rounds, mode).to_client()
 
         # Create the ClientApp
