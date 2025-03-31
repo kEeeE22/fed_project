@@ -6,6 +6,7 @@ import os
 import time
 import pickle
 from torch.utils.data import DataLoader, Subset, TensorDataset
+from collections import OrderedDict
 
 from flwr.client import Client, ClientApp
 from flwr.common import Context
@@ -139,10 +140,10 @@ def main():
 
     os.makedirs("results", exist_ok=True)
     # file
-    avg_file = f"results/avg_{args.method}{args.mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv"
-    client_file = f'results/client_{args.method}{args.mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
-    server_file = f'results/server_{args.method}{args.mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
-    global_model_file = f'results/global_model_{args.method}{args.mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.pth'
+    avg_file = f"results/avg_{args.method}{args.bic_mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv"
+    client_file = f'results/client_{args.method}{args.bic_mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
+    server_file = f'results/server_{args.method}{args.bic_mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
+    global_model_file = f'results/global_model_{args.bic_mode}{args.mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.pth'
 
 
 
@@ -186,9 +187,11 @@ def main():
 
         # Gán lại vào dataset
         server_set = TensorDataset(x_test, y_test)
-
+        transfer_train, transfer_test = train_test_split(server_set, test_size=0.99, random_state=42)
         # Sau đó tạo DataLoader bình thường
         server_test = DataLoader(server_set, batch_size=64, shuffle=True)
+        transfer_train = DataLoader(transfer_train, batch_size=32, shuffle=True)
+        transfer_test = DataLoader(transfer_test, batch_size=32, shuffle=False)
     else:
         for i in range(args.n_client):
             num_samples = len(ids[i])
@@ -438,13 +441,26 @@ def main():
     
     log_time("Total execution", total_start_time)
     log_file.close()
+    print('Start transfer learning')
     model = model_dict[args.sys_model]().to(DEVICE)
-    model.load_state_dict(torch.load(global_model_file))
+    state = torch.load(global_model_file)
+    model_keys = list(model.state_dict().keys())
+    torch_param = [torch.tensor(arr) if not isinstance(arr, torch.Tensor) else arr for arr in state]
+    state_dict = OrderedDict(zip(model_keys, torch_param))
+    if "bic.beta" not in state_dict and hasattr(model, "bic") and hasattr(model.bic, "beta"):
+        state_dict["bic.beta"] = torch.zeros_like(model.bic.beta)  # Gán beta = 0
+
+    if "bic.alpha" not in state_dict and hasattr(model, "bic") and hasattr(model.bic, "alpha"):
+        state_dict["bic.alpha"] = torch.ones_like(model.bic.alpha)  # Gán alpha = 1
+
+    # Load state_dict vào model
+    model.load_state_dict(state_dict, strict=False)
+    model.to(DEVICE)
     if args.method == 'FedBic' and args.mode == 'er':
-        trainbic(model, server_test, 5, 0.01, frozen=True)
+        trainbic(model, transfer_train, 1, 0.01, frozen=True)
     model.eval()
 
-    df, loss = test_3_server(model, server_test)
+    df, loss = test_3_server(model, transfer_test)
     print(f"Test loss: {loss}")
     print(df)
 if __name__ == '__main__':
