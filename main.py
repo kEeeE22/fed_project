@@ -143,7 +143,7 @@ def main():
     avg_file = f"results/avg_{args.method}{args.bic_mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv"
     client_file = f'results/client_{args.method}{args.bic_mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
     server_file = f'results/server_{args.method}{args.bic_mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
-    global_model_file = f'results/global_model_{args.bic_mode}{args.mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.pth'
+    global_model_file = f'results/global_model_{args.bic_mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.pth'
 
 
 
@@ -443,9 +443,9 @@ def main():
     log_file.close()
     print('Start transfer learning')
     model = model_dict[args.sys_model]().to(DEVICE)
-    state = torch.load(global_model_file)
+    model_state = torch.load(global_model_file)
     model_keys = list(model.state_dict().keys())
-    torch_param = [torch.tensor(arr) if not isinstance(arr, torch.Tensor) else arr for arr in state]
+    torch_param = [torch.tensor(arr) if not isinstance(arr, torch.Tensor) else arr for arr in model_state]
     state_dict = OrderedDict(zip(model_keys, torch_param))
     if "bic.beta" not in state_dict and hasattr(model, "bic") and hasattr(model.bic, "beta"):
         state_dict["bic.beta"] = torch.zeros_like(model.bic.beta)  # Gán beta = 0
