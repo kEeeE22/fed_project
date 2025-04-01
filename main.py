@@ -443,7 +443,7 @@ def main():
     log_file.close()
     print('Start transfer learning')
     model = model_dict[args.sys_model]().to(DEVICE)
-    model_state = torch.load(global_model_file)
+    model_state = torch.load(global_model_file, weights_only=True)
     model_keys = list(model.state_dict().keys())
     torch_param = [torch.tensor(arr) if not isinstance(arr, torch.Tensor) else arr for arr in model_state]
     state_dict = OrderedDict(zip(model_keys, torch_param))
