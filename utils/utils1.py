@@ -121,7 +121,7 @@ def trainbic(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
         net.bic.alpha.requires_grad = True
         net.bic.beta.requires_grad = True
         optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=lr)
-    print(net.bic.alpha.requires_grad)
+    #print(net.bic.alpha.requires_grad)
     #training
     net.train()
     for epoch in range(epochs):
