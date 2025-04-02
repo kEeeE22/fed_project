@@ -143,7 +143,7 @@ def main():
     avg_file = f"results/avg_{args.method}{args.bic_mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv"
     client_file = f'results/client_{args.method}{args.bic_mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
     server_file = f'results/server_{args.method}{args.bic_mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.csv'
-    global_model_file = f'results/global_model_{args.bic_mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.pth'
+    global_model_file = f'results/global_model_{args.method}{args.bic_mode}_{args.num_round}_{args.sys_model}_{args.dataset}_{args.n_client}_{args.num_round}_{args.client_lr}_{args.beta}.pth'
 
 
 
