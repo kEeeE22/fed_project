@@ -70,7 +70,7 @@ class BiCClient(BaselineClient):
         #     ndarrays_original.append(self.bic_prams)
         if self.mode == 'lr':
             if(ins.config.get("server_round") == self.num_rounds):
-                trainbic(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
+                trainbic(self.net, self.trainloader, epochs=200, lr=0.01, frozen=True)
         elif self.mode == 'er1':
             trainbic(self.net, self.trainloader, 1, 0.01, frozen=True)
         

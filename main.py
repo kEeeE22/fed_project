@@ -352,6 +352,7 @@ def main():
             trainloader = trainloaders[partition_id]
             valloader = valloaders[partition_id]
             epochs = args.client_epochs
+            #
             client_lr = args.client_lr
             bn_state_dir = "results/bn_state"
             #epochs = random.randint(1,5)

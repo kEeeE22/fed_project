@@ -35,7 +35,7 @@ class FedAvg(Strategy):
             Callable[[List[Tuple[int, Metrics]]], Metrics]
         ] = None,
         lr = 0.001,
-        decay_rate = 0.095,
+        decay_rate = 0.995,
         testloader = None,
         net = None,
         server_file = None,
@@ -189,7 +189,7 @@ class FedAvg(Strategy):
                 #method_name = self.__repr__()
                 writer.writerow([
                     server_round,
-                    metrics_aggregated.get("loss", None),       # Tránh lỗi KeyError
+                    metrics_aggregated.get("loss", None),
                     metrics_aggregated.get("accuracy", None),
                     metrics_aggregated.get("precision", None),
                     metrics_aggregated.get("recall", None),
