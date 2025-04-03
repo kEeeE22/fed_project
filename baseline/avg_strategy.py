@@ -34,6 +34,8 @@ class FedAvg(Strategy):
         evaluate_metrics_aggregation_fn: Optional[
             Callable[[List[Tuple[int, Metrics]]], Metrics]
         ] = None,
+        lr = 0.001,
+        decay_rate = 0.095,
         testloader = None,
         net = None,
         server_file = None,
@@ -50,6 +52,8 @@ class FedAvg(Strategy):
         self.min_available_clients = min_available_clients
         self.evaluate_metrics_aggregation_fn = evaluate_metrics_aggregation_fn
         self.testloader = testloader
+        self.lr = lr
+        self.decay_rate = decay_rate
         self.net = net
         self.server_file = server_file
         self.client_file = client_file
@@ -68,20 +72,21 @@ class FedAvg(Strategy):
 
     def configure_fit(
         self, server_round: int, parameters: Parameters, client_manager: ClientManager
-    ) -> List[Tuple[ClientProxy, FitIns]]:
-      sample_size, min_num_clients = self.num_fit_clients(
+        ) -> List[Tuple[ClientProxy, FitIns]]:
+        sample_size, min_num_clients = self.num_fit_clients(
         client_manager.num_available()
-    )
-      clients = client_manager.sample(
+        )
+        clients = client_manager.sample(
         num_clients=sample_size, min_num_clients=min_num_clients
-    )
+        )
 
-      standard_config = {"server_round": server_round}
-
-      return [
-        (client, FitIns(parameters, standard_config))
-        for client in clients
-      ]
+        standard_config = {"server_round": server_round, 'client_lr': self.lr}
+        self.lr = self.lr * self.decay_rate
+    
+        return [
+            (client, FitIns(parameters, standard_config))
+            for client in clients
+        ]
 
 
 

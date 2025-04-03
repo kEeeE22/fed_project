@@ -252,6 +252,8 @@ def main():
                 min_available_clients=min_available_clients,
                 evaluate_metrics_aggregation_fn=weighted_average,
                 testloader = server_test,
+                #
+                lr = args.client_lr,
                 net = model_dict[args.sys_model](),
                 server_file = server_file,
                 client_file = client_file,
@@ -371,6 +373,7 @@ def main():
                 min_available_clients=min_available_clients,
                 evaluate_metrics_aggregation_fn=weighted_average,
                 testloader = server_test,
+                lr = args.client_lr,
                 net = model_dict[args.sys_model](),
                 server_file = server_file,
                 client_file = client_file,

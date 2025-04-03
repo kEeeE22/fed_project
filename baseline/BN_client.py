@@ -87,8 +87,8 @@ class BNClient(BaselineClient):
             parameters_original = ins.parameters
             ndarrays_original = parameters_to_ndarrays(parameters_original)
             self.set_parameters_BN(self.net, ndarrays_original)
-        
-        train(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
+        #
+        train(self.net, self.trainloader, epochs=self.epochs, lr=ins.config.get('client_lr'), frozen=True)
         ndarrays_updated = self.get_parameters(self.net)
 
         parameters_updated = ndarrays_to_parameters(ndarrays_updated)

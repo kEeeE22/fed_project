@@ -36,7 +36,8 @@ class BiCClient(BaselineClient):
             trainbic(self.net, self.trainloader, epochs=5, lr=0.001, frozen=True)
         print('Train model')
         if self.mode == 'al':
-            trainbic(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=False)
+            #
+            trainbic(self.net, self.trainloader, epochs=self.epochs, lr=ins.config.get('client_lr'), frozen=False)
         else:
             train(self.net, self.trainloader, epochs=self.epochs, lr=self.client_lr, frozen=True)
             
