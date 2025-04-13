@@ -110,7 +110,6 @@ def train(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
 def trainbic(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
     """Train the network on the training set."""
     criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(net.parameters(), lr=lr, momentum=0.9)
     early_stopping = EarlyStopping(patience=5, min_delta=0.0002, verbose=False)
     global_params = copy.deepcopy(net).parameters()
 
@@ -120,7 +119,14 @@ def trainbic(net, trainloader, epochs, lr,frozen=False, proximal_mu=None):
                 param.requires_grad = False
         net.bic.alpha.requires_grad = True
         net.bic.beta.requires_grad = True
-        optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=lr)
+
+    elif not frozen:
+        for name, param in net.named_parameters():
+            if "bic" not in name:
+                param.requires_grad = True
+        net.bic.alpha.requires_grad = False
+        net.bic.beta.requires_grad = False
+    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, net.parameters()), lr=lr)
     #print(net.bic.alpha.requires_grad)
     #training
     net.train()

@@ -19,7 +19,7 @@ from utils.utils1 import train, get_parameters, test_3_server, trainbic
 from utils.load_data import load_data, dirichlet_data, shard_data
 from utils.model import CNN1, ETC_CNN, ResNet50, ETC_CNN2, ETC_CNN3, ETC_RESNET18, ETC_CNN1D, ETC_CNN_0_1
 
-from fedbic.bic_client import BiCClient
+from fedbic.bic_client import BiCClient, TwoPhaseBiCClient
 from fedbic.bic_strategy import FedBic
 from fedbic.old_bic_client import OLD_BiCClient
 from fedbic.wb_bic_client import WB_BiCClient
@@ -115,7 +115,7 @@ def main():
     min_available_clients=5
 
     #dataset viet thuong het  :V
-    dataset_list = ['mnist', 'cifar10', 'etc', 'etc256']
+    dataset_list = ['mnist', 'cifar10', 'etc', 'etc_bic', 'etc256']
     assert args.dataset in dataset_list, 'Choose a dataset that exist.'
 
 
@@ -160,6 +160,7 @@ def main():
     start_time = time.time()
     trainloaders = []
     valloaders = []
+    bic_trainloaders = []
     if args.dataset == 'etc':
         for i in range(1, 7):
             dataa = train_set[f'client{i}']
@@ -192,6 +193,28 @@ def main():
         server_test = DataLoader(server_set, batch_size=64, shuffle=True)
         transfer_train = DataLoader(transfer_train, batch_size=32, shuffle=True)
         transfer_test = DataLoader(transfer_test, batch_size=32, shuffle=False)
+    elif args.dataset == 'etc_bic':
+        dataa = train_set[f'client{i}']
+        x, y = zip(*dataa)  
+            
+        x = torch.stack(x).float()  
+        y = torch.tensor(y).long() 
+
+        # Chia train/test
+        x_train, x_val, y_train, y_val = train_test_split(x, y, test_size=0.2, random_state=42)
+        x_train_model, x_train_bic, y_train_model, y_train_bic = train_test_split(x_train, y_train, test_size=0.2, random_state=42)
+
+        x_train_model = x_train_model.unsqueeze(1)
+        x_train_bic = x_train_bic.unsqueeze(1)  
+        x_val = x_val.unsqueeze(1)
+
+        traina = TensorDataset(x_train_model, y_train_model)
+        trainb = TensorDataset(x_train_bic, y_train_bic)
+        vala = TensorDataset(x_val, y_val)
+        trainloaders.append(DataLoader(traina, batch_size=32, shuffle=True))
+        bic_trainloaders.append(DataLoader(trainb, batch_size=32, shuffle=True))
+        valloaders.append(DataLoader(vala, batch_size=64, shuffle=False))
+
     else:
         for i in range(args.n_client):
             num_samples = len(ids[i])
@@ -304,6 +327,44 @@ def main():
 
         # Create ServerApp
         server = ServerApp(server_fn=server_fn)
+    elif args.method == 'FedBic_2phase':
+        def client_fn(context: Context) -> Client:
+            net = model_dict[args.sys_model]().to(DEVICE)
+            partition_id = context.node_config['partition-id']
+            num_partitions = args.n_client
+            trainloader = trainloaders[partition_id]
+            bic_trainloader = bic_trainloaders[partition_id]
+            valloader = valloaders[partition_id]
+            epochs = args.client_epochs
+            client_lr = args.client_lr
+            return TwoPhaseBiCClient(partition_id, net, trainloader,bic_trainloader, valloader, epochs, client_lr).to_client()
+
+        # Create the ClientApp
+        client = ClientApp(client_fn=client_fn)
+
+        def server_fn(context: Context) -> ServerAppComponents:
+        # Configure the server for num_rounds rounds of training
+            config = ServerConfig(num_rounds=args.num_round)
+            strategy = FedBic(
+                fraction_fit=fraction_fit,
+                fraction_evaluate=fraction_evaluate,
+                min_fit_clients=min_fit_clients,
+                min_evaluate_clients=min_evaluate_clients,
+                min_available_clients=min_available_clients,
+                evaluate_metrics_aggregation_fn=weighted_average,
+                testloader = server_test,
+                net = model_dict[args.sys_model](),
+                server_file = server_file,
+                client_file = client_file,
+                avg_file = avg_file,
+                model_file = global_model_file,
+                num_rounds = args.num_round,
+            )
+            return ServerAppComponents(config=config, strategy = strategy)
+
+
+        # Create ServerApp
+        server = ServerApp(server_fn=server_fn) 
     elif args.method == 'FedAvg':
         def client_fn(context: Context) -> Client:
             net = model_dict[args.sys_model]().to(DEVICE)
